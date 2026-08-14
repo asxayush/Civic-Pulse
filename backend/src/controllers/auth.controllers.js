@@ -27,13 +27,13 @@ const registerUser = asyncHandler(async (req, res) => {
         }
     )
 
-    User.findById(user._id).select("-password") // exclude password from the response 
+    const findUser = await User.findById(user._id).select("-password") // exclude password from the response 
 
     return res
     .status(201)
     .json(
         new ApiResponse(201,
-            user,
+            findUser,
             "user registered successfully"
         )
     )
@@ -51,9 +51,36 @@ const loginUser = asyncHandler(async(req, res) => {
         throw new ApiError (409, "your email is not registered with our platform")
     }
 
-    
+    const isPasswordvalid = await bcrypt.compare(password, existedUser.password)
+    if(!isPasswordvalid) {
+        throw new ApiError(404, "password is not correct")
+    }
+
+    const token = jwt.sign (
+        {
+            _id: existedUser._id,
+            role: existedUser.role
+        },
+        process.env.JWT_SECRET,
+        {
+            expiresIn: process.env.JWT_SECRET_EXPIRY
+        }
+    )
+
+    const user = await User.findById(existedUser._id).select("-password")
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {user,token},
+            "user logged in successfully"
+        )
+    )
 })
 
 export{
-    registerUser
+    registerUser,
+    loginUser
 }
