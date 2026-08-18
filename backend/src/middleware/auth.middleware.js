@@ -31,3 +31,17 @@ export const verifyJWT = asyncHandler (async (req, res, next) => {
     }
 }
 )
+
+export const authorizedRoles = asyncHandler (async (req, res, next) => {
+      const currentRole = req.user.role
+
+      if(currentRole != "ADMIN"){
+        throw new ApiError(403, "Forbidden Error")
+      }
+
+      next()
+
+
+
+
+})

@@ -80,7 +80,17 @@ const loginUser = asyncHandler(async(req, res) => {
     )
 })
 
+
+const createStaff = asyncHandler(async(req, res) => {
+    
+})
+
+
+
+
+
 export{
     registerUser,
-    loginUser
+    loginUser,
+    createStaff
 }
