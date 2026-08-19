@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandlers.js"
 import { ApiError } from "../utils/api-error.js"
 import { ApiResponse } from "../utils/api-response.js"
 import {User} from "../models/user.models.js"
+import bcrypt from 'bcrypt'
 
 const registerUser = asyncHandler(async (req, res) => {
     const {name, email, password} = req.body
@@ -53,7 +54,7 @@ const loginUser = asyncHandler(async(req, res) => {
 
     const isPasswordvalid = await bcrypt.compare(password, existedUser.password)
     if(!isPasswordvalid) {
-        throw new ApiError(404, "password is not correct")
+        throw new ApiError(401, "password is not correct")
     }
 
     const token = jwt.sign (
@@ -81,8 +82,23 @@ const loginUser = asyncHandler(async(req, res) => {
 })
 
 
+
+const getCurrentUser = asyncHandler(async (req, res, next) => {
+    const getMe = req.user
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(201, getMe, "User fetched successfully")
+    )
+}) 
+
+
+
 const createStaff = asyncHandler(async(req, res) => {
-    
+    const {name, email, password, department} = req.body
+
+   
 })
 
 
@@ -92,5 +108,6 @@ const createStaff = asyncHandler(async(req, res) => {
 export{
     registerUser,
     loginUser,
+    getCurrentUser,
     createStaff
 }

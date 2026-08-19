@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken"
 import { asyncHandler } from "../utils/asyncHandlers.js"
 import { ApiError } from "../utils/api-error.js"
 import { ApiResponse } from "../utils/api-response.js"
-import {User} from "mongoose"
+import {User} from "../models/user.models.js"
 
 // jwt decode code to be written 
 
@@ -21,7 +21,7 @@ export const verifyJWT = asyncHandler (async (req, res, next) => {
 
 
       if(!user){
-        console.log("JWT ERROR:", error.message) 
+        console.log("JWT ERROR: User not found in database") 
         throw new ApiError(401, "invalid access token")
       }
       req.user = user
@@ -32,16 +32,17 @@ export const verifyJWT = asyncHandler (async (req, res, next) => {
 }
 )
 
-export const authorizedRoles = asyncHandler (async (req, res, next) => {
-      const currentRole = req.user.role
-
-      if(currentRole != "ADMIN"){
-        throw new ApiError(403, "Forbidden Error")
+export const authorizedRoles = (...allowedRoles) => { 
+    return asyncHandler (async (req, res, next) => {
+      
+      if(!req.user) {
+        throw new ApiError(401, "Unauthorized request")
       }
 
-      next()
+      if(!allowedRoles.includes(req.user.role)){
+            throw new ApiError(403, "You don't have perms to perform this action")
+        }
 
-
-
-
+        next()
 })
+}
