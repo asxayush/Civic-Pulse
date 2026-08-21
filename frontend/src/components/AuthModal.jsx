@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Lock, Mail, User, ShieldCheck, Key, ArrowRight, RefreshCw, CheckCircle2 } from "lucide-react";
+import { X, Lock, Mail, User, ShieldCheck, Key, RefreshCw } from "lucide-react";
+import { authService } from "../services/api";
 
 export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
     const [authMode, setAuthMode] = useState("login"); // 'login' | 'register' | 'otp'
@@ -15,6 +16,7 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
     const [canResend, setCanResend] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [successMsg, setSuccessMsg] = useState("");
 
     useEffect(() => {
         let interval;
@@ -30,14 +32,12 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
 
     if (!isOpen) return null;
 
-    // Handle OTP input change with auto-focus movement
     const handleOtpChange = (index, value) => {
         if (isNaN(value)) return;
         const newOtp = [...otpDigits];
         newOtp[index] = value.slice(-1);
         setOtpDigits(newOtp);
 
-        // Auto move to next input box
         if (value && index < 5) {
             otpRefs[index + 1].current.focus();
         }
@@ -49,18 +49,24 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
         }
     };
 
-    const handleResendOTP = () => {
+    const handleResendOTP = async () => {
         setResendTimer(30);
         setCanResend(false);
         setErrorMsg("");
-        // Reset OTP fields
+        setSuccessMsg("");
         setOtpDigits(["", "", "", "", "", ""]);
-        if (otpRefs[0].current) otpRefs[0].current.focus();
+        try {
+            await authService.register(name || "Student User", email, password || "Password123!");
+            setSuccessMsg("A new verification OTP code has been sent!");
+        } catch (err) {
+            setErrorMsg(err.response?.data?.message || err.message || "Failed to resend OTP");
+        }
     };
 
-    const handleRegisterSubmit = (e) => {
+    const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         setErrorMsg("");
+        setSuccessMsg("");
         
         if (!email.toLowerCase().endsWith("@yourcollege.edu.in") && !email.toLowerCase().includes("@")) {
             setErrorMsg("Registration restricted. Email must end with @yourcollege.edu.in");
@@ -68,54 +74,74 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
         }
 
         setSubmitting(true);
-        setTimeout(() => {
+        try {
+            const res = await authService.register(name, email, password);
             setSubmitting(false);
             setAuthMode("otp");
             setResendTimer(30);
             setCanResend(false);
-        }, 800);
+            setSuccessMsg(res.message || "Verification OTP sent!");
+        } catch (err) {
+            setSubmitting(false);
+            setErrorMsg(err.response?.data?.message || err.message || "Registration failed");
+        }
     };
 
-    const handleOtpVerify = (e) => {
+    const handleOtpVerify = async (e) => {
         e.preventDefault();
         setErrorMsg("");
+        setSuccessMsg("");
         const fullOtp = otpDigits.join("");
         if (fullOtp.length < 6) {
-            setErrorMsg("Please enter complete 6-digit OTP code");
+            setErrorMsg("Please enter 6-digit OTP code");
             return;
         }
         setSubmitting(true);
-        setTimeout(() => {
+        try {
+            const res = await authService.verifyOTP(email, fullOtp);
             setSubmitting(false);
-            onLoginSuccess({ name: name || "Student User", email, role: "student" });
+            onLoginSuccess(res.data?.user || { name: name || "Student User", email, role: "student" });
             onClose();
-        }, 800);
+        } catch (err) {
+            setSubmitting(false);
+            setErrorMsg(err.response?.data?.message || err.message || "Invalid or expired OTP code");
+        }
     };
 
-    const handleLoginSubmit = (e) => {
+    const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setErrorMsg("");
+        setSuccessMsg("");
         setSubmitting(true);
-        setTimeout(() => {
+        try {
+            const res = await authService.login(email, password);
             setSubmitting(false);
-            onLoginSuccess({ name: email.split("@")[0] || "User", email, role: "student" });
+            onLoginSuccess(res.data?.user || { name: email.split("@")[0] || "User", email, role: "student" });
             onClose();
-        }, 800);
+        } catch (err) {
+            setSubmitting(false);
+            setErrorMsg(err.response?.data?.message || err.message || "Login failed");
+        }
     };
 
-    const handleGoogleAuth = () => {
+    const handleGoogleAuth = async () => {
         setErrorMsg("");
+        setSuccessMsg("");
         const googleEmail = email || "student.google@yourcollege.edu.in";
         if (!googleEmail.toLowerCase().endsWith("@yourcollege.edu.in")) {
             setErrorMsg("Google Single Sign-On restricted to campus domain (@yourcollege.edu.in)");
             return;
         }
         setSubmitting(true);
-        setTimeout(() => {
+        try {
+            const res = await authService.googleAuth(googleEmail, "Google Verified User");
             setSubmitting(false);
-            onLoginSuccess({ name: "Google Verified User", email: googleEmail, role: "student" });
+            onLoginSuccess(res.data?.user || { name: "Google Verified User", email: googleEmail, role: "student" });
             onClose();
-        }, 1000);
+        } catch (err) {
+            setSubmitting(false);
+            setErrorMsg(err.response?.data?.message || err.message || "Google authentication failed");
+        }
     };
 
     return (
@@ -128,7 +154,7 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
                         <ShieldCheck className="w-5 h-5 text-sky-400" />
                         <div>
                             <h3 className="text-sm font-bold tracking-tight">CPGRAMS Portal Authentication</h3>
-                            <p className="text-[11px] text-sky-200">OTP Email Verification & Google SSO</p>
+                            <p className="text-[11px] text-sky-200">Live API OTP Verification & Google SSO</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-1 rounded-lg text-sky-200 hover:text-white hover:bg-blue-900 transition">
@@ -140,7 +166,7 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
                 {authMode !== "otp" && (
                     <div className="flex border-b border-slate-200 bg-slate-50">
                         <button
-                            onClick={() => { setAuthMode("login"); setErrorMsg(""); }}
+                            onClick={() => { setAuthMode("login"); setErrorMsg(""); setSuccessMsg(""); }}
                             className={`flex-1 py-3 text-xs font-bold transition border-b-2 ${
                                 authMode === "login"
                                     ? "border-[#002B66] text-[#002B66] bg-white"
@@ -150,7 +176,7 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
                             Sign In / Login
                         </button>
                         <button
-                            onClick={() => { setAuthMode("register"); setErrorMsg(""); }}
+                            onClick={() => { setAuthMode("register"); setErrorMsg(""); setSuccessMsg(""); }}
                             className={`flex-1 py-3 text-xs font-bold transition border-b-2 ${
                                 authMode === "register"
                                     ? "border-[#002B66] text-[#002B66] bg-white"
@@ -167,6 +193,11 @@ export const AuthModal = ({ isOpen, onClose, onLoginSuccess }) => {
                     {errorMsg && (
                         <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
                             {errorMsg}
+                        </div>
+                    )}
+                    {successMsg && (
+                        <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
+                            {successMsg}
                         </div>
                     )}
 
