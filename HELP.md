@@ -22,6 +22,21 @@ npm run dev
 
 `npm run seed` clears existing users and complaints before recreating the demo data. Do not run it against a database containing data you need to keep.
 
+To create only the demo Admin/Staff/Student accounts without deleting production data, run:
+
+```bash
+cd backend
+npm run seed:demo
+```
+
+Run it with the production `MONGODB_URI` once, then redeploy the backend. The live portal buttons use these accounts:
+
+```text
+Admin: admin@yourcollege.edu.in / AdminPassword123! / PIN 1234
+Staff: electrician@yourcollege.edu.in / StaffPassword123!
+Student: student@yourcollege.edu.in / StudentPassword123!
+```
+
 ## Vercel deployment
 
 Deploy `frontend/` and `backend/` as separate Vercel projects.
