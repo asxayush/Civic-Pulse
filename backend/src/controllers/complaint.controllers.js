@@ -69,12 +69,13 @@ const createComplaint = asyncHandler(async (req, res) => {
         req.file.mimetype,
         title,
         description,
-        hostelBlock
+        hostelBlock,
+        category
     );
 
     // 4. Auto-route: prefer AI department whenever vision/heuristic produced a category
     const useAiCategory = Boolean(aiResults.predictedCategory) && (aiResults.confidenceScore || 0) >= 0.5;
-    const finalCategory = useAiCategory
+    const finalCategory = useAiCategory && !(aiResults.predictedCategory === "miscellaneous" && category && category !== "miscellaneous")
         ? aiResults.predictedCategory
         : (category || aiResults.predictedCategory || "miscellaneous");
     const finalTitle = (title && String(title).trim()) || aiResults.suggestedTitle || "Campus issue";
@@ -554,13 +555,14 @@ const analyzeComplaintPreview = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Image is required for AI analysis");
     }
 
-    const { title = "", description = "", hostelBlock = "" } = req.body;
+    const { title = "", description = "", hostelBlock = "", category = "" } = req.body;
     const aiResults = await analyzeComplaintImage(
         req.file.buffer,
         req.file.mimetype,
         title,
         description,
-        hostelBlock
+        hostelBlock,
+        category
     );
 
     return res.status(200).json(

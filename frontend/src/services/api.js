@@ -100,12 +100,13 @@ export const complaintService = {
         const response = await API.get(`/complaints/track/${ticketId}`);
         return response.data;
     },
-    analyzeImage: async ({ imageFile, title = "", description = "", hostelBlock = "" }) => {
+    analyzeImage: async ({ imageFile, title = "", description = "", hostelBlock = "", category = "" }) => {
         const data = new FormData();
         data.append("image", imageFile);
         if (title) data.append("title", title);
         if (description) data.append("description", description);
         if (hostelBlock) data.append("hostelBlock", hostelBlock);
+        if (category) data.append("category", category);
         const response = await API.post("/complaints/analyze", data, {
             headers: { "Content-Type": "multipart/form-data" }
         });

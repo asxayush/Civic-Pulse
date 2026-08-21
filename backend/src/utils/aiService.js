@@ -48,21 +48,38 @@ function normalizeCategory(raw) {
     return "miscellaneous";
 }
 
-function heuristicFromText(title = "", description = "", hostelBlock = "") {
+function categoryFromText(text = "") {
+    const value = String(text).toLowerCase();
+    if (/water|pipe|leak|drip|pressure|tap|flush|bathroom|shower|washroom|sewage|drain|toilet|plumbing/.test(value)) {
+        return "water";
+    }
+    if (/wire|spark|switch|socket|ac\b|fan|power|trip|electric|light|bulb|lamp|voltage|breaker|fuse|charger/.test(value)) {
+        return "electricity";
+    }
+    if (/food|mess|meal|roti|rice|insect|cockroach|stale|hygiene|kitchen|canteen|spoil/.test(value)) {
+        return "food";
+    }
+    return "miscellaneous";
+}
+
+function heuristicFromText(title = "", description = "", hostelBlock = "", categoryHint = "") {
     const combinedText = `${title} ${description} ${hostelBlock}`.toLowerCase();
-    let category = "miscellaneous";
+    let category = categoryFromText(combinedText);
     let priority = "normal";
     let detected = ["campus issue"];
 
-    if (/water|pipe|leak|drip|pressure|tap|flush|bathroom|shower|washroom|sewage|drain|toilet|plumbing/.test(combinedText)) {
+    if (category === "water") {
         category = "water";
         detected = ["plumbing", "water infrastructure"];
-    } else if (/wire|spark|switch|socket|ac\b|fan|power|trip|electric|light|bulb|lamp|voltage|breaker|fuse|charger/.test(combinedText)) {
+    } else if (category === "electricity") {
         category = "electricity";
         detected = ["electrical equipment"];
-    } else if (/food|mess|meal|roti|rice|insect|cockroach|stale|hygiene|kitchen|canteen|spoil/.test(combinedText)) {
+    } else if (category === "food") {
         category = "food";
         detected = ["food / mess"];
+    } else if (["electricity", "water", "food", "miscellaneous"].includes(categoryHint)) {
+        category = categoryHint;
+        detected = [`${categoryHint} infrastructure`];
     }
 
     if (/spark|overflow|flood|urgent|emergency|short circuit|burst|fire|shock|smoke/.test(combinedText)) {
@@ -87,9 +104,9 @@ function heuristicFromText(title = "", description = "", hostelBlock = "") {
 /**
  * 1. Analyze uploaded complaint photo proof — image-first triage
  */
-export const analyzeComplaintImage = async (imageBuffer, mimeType, title = "", description = "", hostelBlock = "") => {
+export const analyzeComplaintImage = async (imageBuffer, mimeType, title = "", description = "", hostelBlock = "", categoryHint = "") => {
     const client = getAiClient();
-    const heuristic = heuristicFromText(title, description, hostelBlock);
+    const heuristic = heuristicFromText(title, description, hostelBlock, categoryHint);
 
     if (client && imageBuffer) {
         try {
@@ -142,7 +159,18 @@ Return ONLY valid JSON (no markdown):
             const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
-                const category = normalizeCategory(parsed.predictedCategory);
+                const modelCategory = normalizeCategory(parsed.predictedCategory);
+                const supportingText = [
+                    parsed.suggestedTitle,
+                    parsed.suggestedDescription,
+                    parsed.aiSummary,
+                    parsed.triageNotes,
+                    ...(Array.isArray(parsed.detectedObjects) ? parsed.detectedObjects : [])
+                ].join(" ");
+                const textCategory = categoryFromText(supportingText);
+                const category = modelCategory === "miscellaneous" && textCategory !== "miscellaneous"
+                    ? textCategory
+                    : modelCategory;
                 let confidence = Number(parsed.confidenceScore);
                 if (Number.isNaN(confidence)) confidence = 0.85;
                 confidence = Math.min(1, Math.max(0.4, confidence));

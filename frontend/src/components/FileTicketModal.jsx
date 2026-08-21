@@ -45,12 +45,15 @@ export const FileTicketModal = ({ isOpen, onClose, onSubmit }) => {
         try {
             const res = await complaintService.analyzeImage({
                 imageFile: file,
-                hostelBlock: block || hostelBlock
+                hostelBlock: block || hostelBlock,
+                category
             });
             const data = res.data;
             if (!data) return;
             setAiPreview(data);
-            if (data.predictedCategory) setCategory(data.predictedCategory);
+            if (data.predictedCategory && data.predictedCategory !== "miscellaneous") {
+                setCategory(data.predictedCategory);
+            }
             if (data.suggestedTitle) setTitle(data.suggestedTitle);
             if (data.suggestedDescription) setDescription(data.suggestedDescription);
         } catch (err) {
