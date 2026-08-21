@@ -54,9 +54,11 @@ const registerUser = asyncHandler(async (req, res) => {
 
     const safeUser = await User.findById(user._id).select("-password");
 
+    const isMailtrap = (process.env.SMTP_HOST || "").includes("mailtrap");
+    const isLiveSmtp = process.env.SMTP_HOST && process.env.SMTP_USER && !isMailtrap;
+
     const payload = { user: safeUser };
-    // MVP / no SMTP: expose OTP so UI can complete verification without email
-    if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+    if (!isLiveSmtp) {
         payload.devOTP = generatedOTP;
         console.log(`\n[OTP] ${email} → ${generatedOTP}\n`);
     }
@@ -65,8 +67,8 @@ const registerUser = asyncHandler(async (req, res) => {
         new ApiResponse(
             201,
             payload,
-            !process.env.SMTP_HOST || !process.env.SMTP_USER
-                ? `Registered. Dev OTP: ${generatedOTP} (also in server logs)`
+            !isLiveSmtp
+                ? `Registered. Dev OTP: ${generatedOTP} (auto-filled for instant verification)`
                 : "User registered successfully. Verification OTP has been sent to your email."
         )
     );
