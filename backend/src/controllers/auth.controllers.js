@@ -50,7 +50,8 @@ const registerUser = asyncHandler(async (req, res) => {
     await OTP.deleteMany({ email });
     await OTP.create({ email, otp: generatedOTP });
 
-    await sendOTPEmail(email, generatedOTP);
+    // Send email asynchronously in background so response returns instantly
+    sendOTPEmail(email, generatedOTP).catch((err) => console.warn("[MAIL WARNING] Background OTP dispatch failed:", err.message));
 
     const safeUser = await User.findById(user._id).select("-password");
 

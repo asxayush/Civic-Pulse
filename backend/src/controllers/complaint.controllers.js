@@ -248,10 +248,10 @@ const updateComplaintStatus = asyncHandler(async (req, res) => {
         complaint.verificationOTP = resOTP;
         complaint.otpExpiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours
 
-        // Send OTP to the student who filed the complaint
+        // Send OTP to the student who filed the complaint in background
         const student = await User.findById(complaint.filedBy);
         if (student) {
-            await sendOTPEmail(student.email, resOTP);
+            sendOTPEmail(student.email, resOTP).catch((err) => console.warn("[MAIL WARNING] Background resolution OTP dispatch failed:", err.message));
         }
 
         pushStatusHistory(complaint, previousStatus, newStatus, req.user._id, "Staff marked resolved. Verification OTP sent to student.");
