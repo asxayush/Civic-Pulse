@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 let aiClient = null;
 let initAttempted = false;
 
-const VISION_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"];
+const VISION_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro"];
 
 function getAiClient() {
     if (initAttempted) return aiClient;
