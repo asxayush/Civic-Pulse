@@ -51,6 +51,14 @@ Add `GEMINI_API_KEY`, Cloudinary variables, and SMTP variables in Vercel when th
 
 `/voice-complaint` is public and posts recordings to `/api/voice-complaints`. It requires `GEMINI_API_KEY` for transcription/classification and the existing Cloudinary variables for audio storage. Submissions are limited to 3 per IP every 10 minutes and 5 MB/60 seconds. Admins review them under the Voice complaints tab; high-confidence emergency flags are stored and emailed to admins for human action.
 
+For a personal WhatsApp handoff, set this frontend Vercel variable using your full international number without `+` or spaces:
+
+```env
+VITE_ADMIN_WHATSAPP_NUMBER=919876543210
+```
+
+The admin Voice complaints tab then shows `Send to my WhatsApp`. It opens your personal WhatsApp chat with the recording URL and complaint details prefilled; you press Send. Automatic backend delivery to a personal WhatsApp account requires WhatsApp Business Cloud API or Twilio.
+
 Schemas pehle, sab kuch baad me — User, Department, Complaint models likhna sabse pehla code kaam. Relations decide karke.
 Auth flow — signup/login with email domain restriction, JWT, bcrypt. Middleware for protected routes.
 Core Complaint CRUD — create complaint (with photo upload — multer/cloudinary), get complaints, get single complaint by ticket ID.
