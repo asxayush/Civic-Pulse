@@ -11,6 +11,7 @@ import { StaffView } from "./components/StaffView";
 import { AdminView } from "./components/AdminView";
 import { WellnessPage } from "./components/WellnessPage";
 import { LegalPage } from "./components/LegalPages";
+import { VoiceComplaintPage } from "./components/VoiceComplaintPage";
 
 function StudentRoute() {
     const ctx = useOutletContext();
@@ -46,6 +47,7 @@ function AdminRoute() {
             complaints={ctx.adminComplaints}
             escalatedComplaints={ctx.escalated}
             users={ctx.users}
+            voiceComplaints={ctx.voiceComplaints}
             onStatusChange={ctx.onStatusChange}
             onToggleBanUser={ctx.onToggleBanUser}
             onOpenStaffModal={ctx.onOpenStaffModal}
@@ -84,6 +86,7 @@ export default function App() {
                 <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/login" element={<LoginPage />} />
+                    <Route path="/voice-complaint" element={<VoiceComplaintPage />} />
                     <Route path="/track" element={<TrackPage />} />
                     <Route path="/track/:ticketId" element={<TrackPage />} />
                     <Route path="/privacy" element={<LegalPage type="privacy" />} />

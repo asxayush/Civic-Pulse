@@ -5,6 +5,7 @@ import authRouter from "./routes/auth.routes.js";
 import adminRouter from "./routes/admin.routes.js";
 import complaintRouter from "./routes/complaint.routes.js";
 import wellnessRouter from "./routes/wellness.routes.js";
+import voiceComplaintRouter from "./routes/voiceComplaint.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
@@ -49,6 +50,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/complaints", complaintRouter);
 app.use("/api/wellness", wellnessRouter);
+app.use("/api/voice-complaints", voiceComplaintRouter);
 
 // Centralized Error Handling Middleware
 app.use(errorHandler);

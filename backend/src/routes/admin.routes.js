@@ -9,6 +9,7 @@ import {
     confirmInvalidComplaint,
     rejectInvalidRequest
 } from "../controllers/admin.controllers.js";
+import { getVoiceComplaints } from "../controllers/voiceComplaint.controllers.js";
 import { verifyJWT, authorizeRoles } from "../middleware/auth.middleware.js";
 import { createStaffValidator } from "../validators/index.js";
 import { validate } from "../middleware/validator.middleware.js";
@@ -24,6 +25,7 @@ router.route("/users").get(getAllUsers);
 router.route("/users/:id/ban").patch(toggleBanUser);
 router.route("/complaints/escalated").get(getEscalatedComplaints);
 router.route("/complaints/all").get(getAllComplaints);
+router.route("/voice-complaints").get(getVoiceComplaints);
 
 // Two-tier invalid review system
 router.route("/complaints/invalid-review").get(getInvalidReviewQueue);

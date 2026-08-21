@@ -22,6 +22,19 @@ export const upload = multer({
     }
 });
 
+export const uploadAudio = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowed = ["audio/webm", "audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3", "audio/ogg"];
+        if (allowed.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new ApiError(400, "Only WEBM, MP3, WAV, or OGG audio is allowed"), false);
+        }
+    }
+});
+
 export const uploadToCloudinary = async (buffer, mimetype = "image/jpeg") => {
     // If Cloudinary API credentials are dummy or default in dev mode, convert buffer to Data URI
     if (!process.env.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_API_SECRET === "your_api_secret" || process.env.CLOUDINARY_CLOUD_NAME === "demo") {
@@ -39,6 +52,24 @@ export const uploadToCloudinary = async (buffer, mimetype = "image/jpeg") => {
                     const base64 = buffer.toString("base64");
                     return resolve(`data:${mimetype};base64,${base64}`);
                 }
+                resolve(result.secure_url);
+            }
+        );
+        stream.end(buffer);
+    });
+};
+
+export const uploadAudioToCloudinary = async (buffer, mimetype = "audio/webm") => {
+    if (!process.env.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_API_SECRET === "your_api_secret" || process.env.CLOUDINARY_CLOUD_NAME === "demo") {
+        const base64 = buffer.toString("base64");
+        return `data:${mimetype};base64,${base64}`;
+    }
+
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { folder: "civic_pulse_voice_complaints", resource_type: "video" },
+            (error, result) => {
+                if (error) return reject(error);
                 resolve(result.secure_url);
             }
         );

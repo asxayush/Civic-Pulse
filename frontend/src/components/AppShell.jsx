@@ -20,6 +20,7 @@ export const AppShell = () => {
     const [adminComplaints, setAdminComplaints] = useState([]);
     const [escalated, setEscalated] = useState([]);
     const [users, setUsers] = useState([]);
+    const [voiceComplaints, setVoiceComplaints] = useState([]);
 
     const [isFileModalOpen, setIsFileModalOpen] = useState(false);
     const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
@@ -52,14 +53,16 @@ export const AppShell = () => {
                 if (aRes.data) setAssigned(aRes.data);
             }
             if (currentUser.role === "admin") {
-                const [allRes, escRes, usersRes] = await Promise.all([
+                const [allRes, escRes, usersRes, voiceRes] = await Promise.all([
                     adminService.getAllComplaints(),
                     adminService.getEscalatedComplaints(),
-                    adminService.getAllUsers()
+                    adminService.getAllUsers(),
+                    adminService.getVoiceComplaints()
                 ]);
                 if (allRes.data) setAdminComplaints(allRes.data);
                 if (escRes.data) setEscalated(escRes.data);
                 if (usersRes.data) setUsers(usersRes.data);
+                if (voiceRes.data) setVoiceComplaints(voiceRes.data);
             }
         } catch (err) {
             console.warn("Dashboard refresh:", err.message);
@@ -192,6 +195,7 @@ export const AppShell = () => {
                         adminComplaints,
                         escalated,
                         users,
+                        voiceComplaints,
                         refreshData,
                         showToast,
                         onUpvote: handleUpvote,

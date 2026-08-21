@@ -18,6 +18,7 @@ export const AdminView = ({
     complaints = [],
     escalatedComplaints = [],
     users = [],
+    voiceComplaints = [],
     onStatusChange,
     onToggleBanUser,
     onOpenStaffModal,
@@ -28,6 +29,7 @@ export const AdminView = ({
     const [adminSubTab, setAdminSubTab] = useState("escalated");
     const [invalidQueue, setInvalidQueue] = useState([]);
     const [loadingQueue, setLoadingQueue] = useState(false);
+    const [voiceLoading, setVoiceLoading] = useState(false);
 
     useEffect(() => {
         if (adminSubTab !== "invalid-review") return;
@@ -72,6 +74,7 @@ export const AdminView = ({
         { id: "invalid-review", label: "Invalid review", count: invalidQueue.length, icon: AlertTriangle },
         { id: "all", label: "All", count: complaints.length, icon: null },
         { id: "users", label: "Users", count: users.length, icon: Users }
+        , { id: "voice", label: "Voice complaints", count: voiceComplaints.length, icon: ShieldAlert }
     ];
 
     return (
@@ -258,6 +261,30 @@ export const AdminView = ({
                             </tbody>
                         </table>
                     </div>
+                </div>
+            )}
+
+            {adminSubTab === "voice" && (
+                <div className="space-y-3">
+                    {voiceLoading ? <div className="p-8 text-center text-zinc-500 text-xs">Loading voice complaints…</div> : voiceComplaints.length === 0 ? (
+                        <Empty icon={ShieldCheck} title="No voice complaints" body="Public voice submissions will appear here." />
+                    ) : voiceComplaints.map((item) => (
+                        <article key={item._id} className={`rounded-xl border p-5 bg-zinc-950 ${item.isEmergency ? "border-rose-500/70 shadow-lg shadow-rose-950/20" : "border-white/10"}`}>
+                            <div className="flex flex-wrap items-center gap-2 mb-3">
+                                {item.isEmergency && <span className="inline-flex items-center gap-1 rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-bold text-white"><ShieldAlert className="w-3 h-3" /> EMERGENCY</span>}
+                                <span className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] text-zinc-300">{item.category}</span>
+                                <span className="rounded-full border border-amber-400/30 px-2.5 py-1 text-[10px] text-amber-300">{item.urgencyLevel}</span>
+                                <span className="ml-auto text-[11px] text-zinc-600">{new Date(item.createdAt).toLocaleString()}</span>
+                            </div>
+                            <p className="text-sm text-zinc-200 leading-relaxed">{item.transcript || item.summary || "No transcript available. Listen manually."}</p>
+                            <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-zinc-500">
+                                <span>{item.location?.block || "Block not provided"}{item.location?.room ? ` · Room ${item.location.room}` : ""}</span>
+                                <span>Confidence {Math.round((item.confidence || 0) * 100)}%</span>
+                                {item.needsManualReview && <span className="text-amber-400">Manual review needed</span>}
+                            </div>
+                            <audio controls preload="none" src={item.audioUrl} className="mt-4 w-full h-9" />
+                        </article>
+                    ))}
                 </div>
             )}
         </div>

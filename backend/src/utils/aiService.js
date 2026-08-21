@@ -247,6 +247,69 @@ Return ONLY JSON:
     };
 };
 
+export const analyzeVoiceComplaint = async (audioBuffer, mimeType = "audio/webm") => {
+    const client = getAiClient();
+    if (!client || !audioBuffer) return null;
+    let rawResponse = "";
+
+    const prompt = `You are analyzing a voice complaint from a college hostel/campus complaint system.
+Listen to the audio and respond ONLY in valid JSON, no markdown, no extra text:
+{
+  "transcript": "full transcription of what was said",
+  "category": "Electricity" | "Water" | "Sanitation" | "Road" | "Safety" | "Miscellaneous",
+  "urgency_level": "normal" | "urgent" | "emergency",
+  "is_emergency": true | false,
+  "emergency_type": "fire" | "short_circuit" | "injury" | "flooding" | "other" | null,
+  "confidence": 0.0 to 1.0,
+  "summary": "one-line summary for admin dashboard"
+}
+Rules for is_emergency=true: only clear verbal indicators of immediate danger such as fire, smoke, sparking wires, injury, electric shock, or active flooding. Do not mark routine complaints as emergencies. When uncertain, set is_emergency=false and urgency_level="urgent".`;
+
+    try {
+        const response = await generateWithFallback(client, [
+            {
+                role: "user",
+                parts: [
+                    { text: prompt },
+                    { inlineData: { mimeType, data: audioBuffer.toString("base64") } }
+                ]
+            }
+        ]);
+        rawResponse = String(response.text || "");
+        const cleaned = rawResponse.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+        const parsed = JSON.parse(cleaned);
+        const allowedCategories = ["Electricity", "Water", "Sanitation", "Road", "Safety", "Miscellaneous"];
+        const allowedUrgencies = ["normal", "urgent", "emergency"];
+        const confidence = Math.min(1, Math.max(0, Number(parsed.confidence) || 0));
+        const isEmergency = Boolean(parsed.is_emergency) && confidence > 0.7;
+        return {
+            transcript: String(parsed.transcript || "").slice(0, 5000),
+            category: allowedCategories.includes(parsed.category) ? parsed.category : "Miscellaneous",
+            urgencyLevel: isEmergency ? "emergency" : allowedUrgencies.includes(parsed.urgency_level) ? parsed.urgency_level : "normal",
+            isEmergency,
+            emergencyType: isEmergency && ["fire", "short_circuit", "injury", "flooding", "other"].includes(parsed.emergency_type)
+                ? parsed.emergency_type
+                : null,
+            confidence,
+            summary: String(parsed.summary || "Voice complaint requires review.").slice(0, 300),
+            needsManualReview: false
+        };
+    } catch (error) {
+        console.warn("[VOICE AI] Raw response could not be parsed or Gemini failed:", error.message);
+        if (rawResponse) console.warn("[VOICE AI] Raw Gemini response:", rawResponse);
+        return {
+            transcript: "",
+            category: "Miscellaneous",
+            urgencyLevel: "normal",
+            isEmergency: false,
+            emergencyType: null,
+            confidence: 0,
+            summary: "Audio requires manual review.",
+            needsManualReview: true
+        };
+    }
+};
+
 /**
  * 3. Wellness companion with optional chat history context
  */

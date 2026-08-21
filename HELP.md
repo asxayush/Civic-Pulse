@@ -47,6 +47,10 @@ Environment Variable: FRONTEND_URL=https://<frontend-project>.vercel.app
 
 Add `GEMINI_API_KEY`, Cloudinary variables, and SMTP variables in Vercel when those features are enabled. The backend uses `api/index.js` as its Vercel function entrypoint; do not use the local `npm start` process as the Vercel deployment command.
 
+## Public voice complaints
+
+`/voice-complaint` is public and posts recordings to `/api/voice-complaints`. It requires `GEMINI_API_KEY` for transcription/classification and the existing Cloudinary variables for audio storage. Submissions are limited to 3 per IP every 10 minutes and 5 MB/60 seconds. Admins review them under the Voice complaints tab; high-confidence emergency flags are stored and emailed to admins for human action.
+
 Schemas pehle, sab kuch baad me — User, Department, Complaint models likhna sabse pehla code kaam. Relations decide karke.
 Auth flow — signup/login with email domain restriction, JWT, bcrypt. Middleware for protected routes.
 Core Complaint CRUD — create complaint (with photo upload — multer/cloudinary), get complaints, get single complaint by ticket ID.

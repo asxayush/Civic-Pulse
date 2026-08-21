@@ -7,7 +7,8 @@ import {
     Link2,
     Clock,
     ArrowRight,
-    Search
+    Search,
+    Mic
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { roleHome } from "./ProtectedRoute";
@@ -64,6 +65,12 @@ export const LandingPage = () => {
                             className="hidden sm:inline-flex text-sm text-zinc-400 hover:text-white transition px-3 py-1.5"
                         >
                             Track
+                        </Link>
+                        <Link
+                            to="/voice-complaint"
+                            className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-400/30 text-rose-200 text-sm font-medium px-6 py-3 hover:bg-rose-400/10 transition"
+                        >
+                            <Mic className="w-4 h-4" /> Voice emergency complaint
                         </Link>
                         <button
                             onClick={goWorkspace}

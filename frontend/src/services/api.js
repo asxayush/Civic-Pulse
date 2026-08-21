@@ -38,6 +38,20 @@ export const authService = {
     }
 };
 
+export const voiceComplaintService = {
+    submit: async (audioBlob, block, room, durationSeconds) => {
+        const data = new FormData();
+        data.append("audio", audioBlob, "voice-complaint.webm");
+        data.append("block", block);
+        data.append("room", room);
+        data.append("durationSeconds", String(durationSeconds || 0));
+        const response = await API.post("/voice-complaints", data, {
+            headers: { "Content-Type": "multipart/form-data" }
+        });
+        return response.data;
+    }
+};
+
 export const complaintService = {
     createComplaint: async (formData) => {
         const data = new FormData();
@@ -148,6 +162,10 @@ export const adminService = {
     },
     getInvalidReviewQueue: async () => {
         const response = await API.get("/admin/complaints/invalid-review");
+        return response.data;
+    },
+    getVoiceComplaints: async () => {
+        const response = await API.get("/admin/voice-complaints");
         return response.data;
     },
     confirmInvalid: async (id) => {

@@ -21,3 +21,13 @@ export const complaintRateLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false
 });
+
+export const voiceComplaintRateLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 3,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res, next) => {
+        next(new ApiError(429, "Too many emergency complaints from this network. Please wait 10 minutes."));
+    }
+});
