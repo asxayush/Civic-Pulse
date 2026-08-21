@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Outlet, useNavigate, Link } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import { StatsHeader } from "./StatsHeader";
@@ -27,6 +27,7 @@ export const AppShell = () => {
     const [selectedDetailComplaint, setSelectedDetailComplaint] = useState(null);
     const [verifyResolutionComplaint, setVerifyResolutionComplaint] = useState(null);
     const [toast, setToast] = useState(null);
+    const refreshInFlight = useRef(false);
 
     const showToast = (message, type = "success") => {
         setToast({ message, type });
@@ -34,6 +35,8 @@ export const AppShell = () => {
     };
 
     const refreshData = useCallback(async () => {
+        if (refreshInFlight.current) return;
+        refreshInFlight.current = true;
         try {
             const feedRes = await complaintService.getPublicFeed();
             if (feedRes.data && Array.isArray(feedRes.data)) setPublicFeed(feedRes.data);
@@ -66,6 +69,8 @@ export const AppShell = () => {
             }
         } catch (err) {
             console.warn("Dashboard refresh:", err.message);
+        } finally {
+            refreshInFlight.current = false;
         }
     }, [currentUser?.role]);
 
@@ -73,11 +78,11 @@ export const AppShell = () => {
         refreshData();
     }, [refreshData]);
 
-    // Live updates — poll every 8s while dashboard is open
+    // Poll less aggressively and pause when the dashboard is in a background tab.
     useEffect(() => {
         const id = setInterval(() => {
-            refreshData();
-        }, 8000);
+            if (document.visibilityState === "visible") refreshData();
+        }, 30000);
         return () => clearInterval(id);
     }, [refreshData]);
 

@@ -10,6 +10,9 @@ import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
 
+// Render/Vercel proxy headers are needed for accurate IP-based rate limiting.
+app.set("trust proxy", 1);
+
 // Basic Express server setup
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
