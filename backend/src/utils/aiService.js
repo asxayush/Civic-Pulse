@@ -112,31 +112,25 @@ export const analyzeComplaintImage = async (imageBuffer, mimeType, title = "", d
         try {
             const base64Image = imageBuffer.toString("base64");
             const cleanMime = String(mimeType || "image/jpeg").split(";")[0].trim().toLowerCase();
-            const prompt = `You are Civic Pulse campus grievance triage AI. Analyze the PHOTO FIRST (primary evidence), then any text hints.
+            const prompt = `Analyze this image for a campus complaint (e.g. leaks, damage, overcrowding). Determine the following:
+1) A short, descriptive title.
+2) A detailed description of the issue.
+3) The most appropriate category strictly from: electricity, water, food, miscellaneous.
+4) An isUrgent boolean flag (set to true ONLY if it poses an immediate safety hazard, active leak, or severe property damage risk).
 
-Categories (pick exactly one):
-- electricity: lights, fans, AC, switches, sockets, wiring, power outage, sparks, breakers
-- water: leaks, taps, pipes, toilets, drainage, bathroom flooding, low pressure
-- food: mess/canteen food quality, insects in food, spoiled meals, kitchen hygiene
-- miscellaneous: furniture, doors, windows, roads, Wi‑Fi, cleanliness (non-plumbing), other campus infra
-
-Priority:
-- high: safety risk (sparks, flooding, fire, structural hazard, food contamination)
-- normal: inconvenience / non-urgent repair
-
-User hints (may be empty — do NOT invent facts not visible):
+User hints (may be empty):
 Title: "${title || "(none)"}"
 Description: "${description || "(none)"}"
 Location: "${hostelBlock || "(unknown)"}"
 
-Return ONLY valid JSON (no markdown):
+Return strictly in JSON format (no markdown):
 {
-  "predictedCategory": "electricity" | "water" | "food" | "miscellaneous",
+  "title": "short specific title",
+  "description": "detailed description of the issue and evidence",
+  "category": "electricity" | "water" | "food" | "miscellaneous",
+  "isUrgent": true | false,
   "confidenceScore": 0.0-1.0,
-  "suggestedPriority": "normal" | "high",
-  "suggestedTitle": "max 70 chars, specific",
-  "suggestedDescription": "3-5 sentences: what is broken, visible evidence, suggested action for staff",
-  "aiSummary": "2 sentences for staff dashboard",
+  "aiSummary": "2-sentence summary for staff dashboard",
   "detectedObjects": ["objects visible in photo"],
   "triageNotes": "1 sentence why this category"
 }`;
@@ -160,10 +154,15 @@ Return ONLY valid JSON (no markdown):
             const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
-                const modelCategory = normalizeCategory(parsed.predictedCategory);
+                const rawCat = parsed.category || parsed.predictedCategory;
+                const modelCategory = normalizeCategory(rawCat);
+                const titleStr = parsed.title || parsed.suggestedTitle || heuristic.suggestedTitle;
+                const descStr = parsed.description || parsed.suggestedDescription || parsed.aiSummary || heuristic.suggestedDescription;
+                const isUrgent = Boolean(parsed.isUrgent) || parsed.suggestedPriority === "high" || heuristic.suggestedPriority === "high";
+
                 const supportingText = [
-                    parsed.suggestedTitle,
-                    parsed.suggestedDescription,
+                    titleStr,
+                    descStr,
                     parsed.aiSummary,
                     parsed.triageNotes,
                     ...(Array.isArray(parsed.detectedObjects) ? parsed.detectedObjects : [])
@@ -184,11 +183,10 @@ Return ONLY valid JSON (no markdown):
                 return {
                     predictedCategory: category,
                     confidenceScore: confidence,
-                    suggestedPriority: parsed.suggestedPriority === "high" || heuristic.suggestedPriority === "high" ? "high" : "normal",
-                    suggestedTitle: (parsed.suggestedTitle || heuristic.suggestedTitle || "Campus issue").slice(0, 80),
-                    suggestedDescription:
-                        parsed.suggestedDescription || parsed.aiSummary || heuristic.suggestedDescription,
-                    aiSummary: parsed.aiSummary || heuristic.aiSummary,
+                    suggestedPriority: isUrgent ? "high" : "normal",
+                    suggestedTitle: String(titleStr || "Campus issue").slice(0, 80),
+                    suggestedDescription: String(descStr || heuristic.suggestedDescription),
+                    aiSummary: parsed.aiSummary || `${category} issue flagged at ${hostelBlock || "campus"}.`,
                     detectedObjects: Array.isArray(parsed.detectedObjects)
                         ? parsed.detectedObjects.slice(0, 12)
                         : heuristic.detectedObjects,
@@ -254,10 +252,14 @@ export const analyzeVoiceComplaint = async (audioBuffer, mimeType = "audio/webm"
     let rawResponse = "";
     const cleanMime = String(mimeType || "audio/webm").split(";")[0].trim().toLowerCase();
 
-    const prompt = `You are analyzing a voice complaint from a college hostel/campus complaint system.
-Listen to the audio and respond ONLY in valid JSON, no markdown, no extra text:
+    const prompt = `Transcribe this audio complaint and categorize it. The audio might be in Hindi or English. Translate the transcript to English.
+Categorize as strictly one of: electricity, water, food, miscellaneous (or Electricity, Water, Sanitation, Road, Safety, Miscellaneous).
+
+Return strictly in JSON format (no markdown, no extra text):
 {
-  "transcript": "full transcription of what was said",
+  "title": "short descriptive title in English",
+  "description": "detailed description translated to English",
+  "transcript": "full transcription translated to English if audio was in Hindi",
   "category": "Electricity" | "Water" | "Sanitation" | "Road" | "Safety" | "Miscellaneous",
   "urgency_level": "normal" | "urgent" | "emergency",
   "is_emergency": true | false,
@@ -265,7 +267,7 @@ Listen to the audio and respond ONLY in valid JSON, no markdown, no extra text:
   "confidence": 0.0 to 1.0,
   "summary": "one-line summary for admin dashboard"
 }
-Rules for is_emergency=true: only clear verbal indicators of immediate danger such as fire, smoke, sparking wires, injury, electric shock, or active flooding. Do not mark routine complaints as emergencies. When uncertain, set is_emergency=false and urgency_level="urgent".`;
+Rules for is_emergency=true: set to true ONLY if clear verbal indicators of immediate danger such as fire, smoke, sparking wires, injury, electric shock, or active flooding exist.`;
 
     try {
         const response = await generateWithFallback(client, [
@@ -332,8 +334,9 @@ export const reflectOnStudentThoughts = async (thoughts = "", history = []) => {
 
     if (client && text) {
         try {
-            const prompt = `You are Civic Pulse Wellness Companion — calm, supportive campus stress coach.
-NOT a therapist. No diagnosis. Keep replies under 160 words. Continuity matters — use prior chat if provided.
+            const prompt = `System Instruction: You are a compassionate, empathetic AI counselor for college students. You listen to their stress, academic pressure, or personal feelings. Validate their emotions, offer brief supportive advice, and remind them that professional help is available if they feel overwhelmed. Keep responses concise, warm, and non-judgmental.
+
+NOT a therapist. No medical diagnosis. Keep replies under 160 words. Continuity matters — use prior chat context if provided.
 
 Prior chat (oldest → newest):
 ${historyBlock || "(none)"}
@@ -344,10 +347,10 @@ ${text}
 """
 Crisis keywords detected: ${crisisDetected}
 
-Return ONLY JSON:
+Return ONLY valid JSON (no markdown):
 {
   "mood": "calm" | "anxious" | "overwhelmed" | "sad" | "frustrated" | "hopeful",
-  "aiResponse": "Empathetic reply referencing their message; 2 practical campus-friendly coping steps",
+  "aiResponse": "Empathetic, compassionate reply validating their feelings, offering brief advice and practical coping steps",
   "suggestedExercises": ["short exercise 1", "short exercise 2"],
   "crisisFlag": true | false
 }
