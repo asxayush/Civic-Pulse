@@ -73,11 +73,12 @@ const createComplaint = asyncHandler(async (req, res) => {
         category
     );
 
-    // 4. Auto-route: prefer AI department whenever vision/heuristic produced a category
-    const useAiCategory = Boolean(aiResults.predictedCategory) && (aiResults.confidenceScore || 0) >= 0.5;
-    const finalCategory = useAiCategory && !(aiResults.predictedCategory === "miscellaneous" && category && category !== "miscellaneous")
-        ? aiResults.predictedCategory
-        : (category || aiResults.predictedCategory || "miscellaneous");
+    // 4. Auto-route: respect explicit user category choice if provided and non-miscellaneous, else use AI prediction
+    const validCategories = ["electricity", "water", "food", "miscellaneous"];
+    const userCategory = (category && validCategories.includes(category)) ? category : null;
+    const finalCategory = (userCategory && userCategory !== "miscellaneous")
+        ? userCategory
+        : (aiResults.predictedCategory || userCategory || "miscellaneous");
     const finalTitle = (title && String(title).trim()) || aiResults.suggestedTitle || "Campus issue";
     const finalDescription =
         (description && String(description).trim()) ||

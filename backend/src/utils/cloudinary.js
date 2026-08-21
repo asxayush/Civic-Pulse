@@ -26,11 +26,23 @@ export const uploadAudio = multer({
     storage,
     limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
-        const allowed = ["audio/webm", "audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp3", "audio/ogg"];
-        if (allowed.includes(file.mimetype)) {
+        const rawType = (file.mimetype || "").split(";")[0].trim().toLowerCase();
+        const allowed = [
+            "audio/webm",
+            "audio/wav",
+            "audio/x-wav",
+            "audio/mpeg",
+            "audio/mp3",
+            "audio/ogg",
+            "audio/mp4",
+            "audio/aac",
+            "audio/x-m4a",
+            "audio/m4a"
+        ];
+        if (allowed.includes(rawType) || rawType.startsWith("audio/")) {
             cb(null, true);
         } else {
-            cb(new ApiError(400, "Only WEBM, MP3, WAV, or OGG audio is allowed"), false);
+            cb(new ApiError(400, "Only WEBM, MP3, WAV, or OGG audio files are allowed"), false);
         }
     }
 });

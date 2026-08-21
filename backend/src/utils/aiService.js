@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 let aiClient = null;
 let initAttempted = false;
 
-const VISION_MODELS = ["gemini-2.0-flash", "gemini-2.5-flash"];
+const VISION_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"];
 
 function getAiClient() {
     if (initAttempted) return aiClient;
@@ -276,8 +276,11 @@ Rules for is_emergency=true: only clear verbal indicators of immediate danger su
             }
         ]);
         rawResponse = String(response.text || "");
-        const cleaned = rawResponse.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-        const parsed = JSON.parse(cleaned);
+        const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error("No valid JSON object found in Gemini response");
+        }
+        const parsed = JSON.parse(jsonMatch[0]);
         const allowedCategories = ["Electricity", "Water", "Sanitation", "Road", "Safety", "Miscellaneous"];
         const allowedUrgencies = ["normal", "urgent", "emergency"];
         const confidence = Math.min(1, Math.max(0, Number(parsed.confidence) || 0));

@@ -15,6 +15,7 @@ export const VoiceComplaintPage = () => {
     const recorderRef = useRef(null);
     const chunksRef = useRef([]);
     const timerRef = useRef(null);
+    const startTimeRef = useRef(null);
 
     useEffect(() => () => {
         clearInterval(timerRef.current);
@@ -27,11 +28,11 @@ export const VoiceComplaintPage = () => {
         setRecording(false);
     };
 
-    const submitAudio = async (blob) => {
+    const submitAudio = async (blob, durationSec) => {
         setProcessing(true);
         setError("");
         try {
-            await voiceComplaintService.submit(blob, block, room, elapsed);
+            await voiceComplaintService.submit(blob, block, room, durationSec);
             setComplete(true);
         } catch (err) {
             setError(err.response?.data?.message || "We could not forward the recording. Please try again.");
@@ -56,17 +57,20 @@ export const VoiceComplaintPage = () => {
             const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
             const recorder = new MediaRecorder(stream, { mimeType });
             chunksRef.current = [];
+            startTimeRef.current = Date.now();
+
             recorder.ondataavailable = (event) => {
                 if (event.data.size) chunksRef.current.push(event.data);
             };
             recorder.onstop = () => {
                 stream.getTracks().forEach((track) => track.stop());
                 const blob = new Blob(chunksRef.current, { type: mimeType });
+                const actualDuration = Math.min(60, Math.max(1, Math.round((Date.now() - (startTimeRef.current || Date.now())) / 1000)));
                 if (blob.size > 5 * 1024 * 1024) {
                     setError("This recording is larger than 5MB. Please record a shorter complaint.");
                     return;
                 }
-                submitAudio(blob);
+                submitAudio(blob, actualDuration);
             };
             recorderRef.current = recorder;
             recorder.start();

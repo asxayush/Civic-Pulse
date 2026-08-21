@@ -88,8 +88,12 @@ const getVoiceComplaints = asyncHandler(async (req, res) => {
     const urgencyOrder = { emergency: 0, urgent: 1, normal: 2 };
     const complaints = await VoiceComplaint.find().sort({ createdAt: -1 });
     complaints.sort((left, right) => {
-        const emergencyRank = Number(right.isEmergency) - Number(left.isEmergency);
-        return emergencyRank || urgencyOrder[left.urgencyLevel] - urgencyOrder[right.urgencyLevel] || right.createdAt - left.createdAt;
+        const emergencyRank = Number(Boolean(right.isEmergency)) - Number(Boolean(left.isEmergency));
+        const leftUrgency = urgencyOrder[left.urgencyLevel] ?? 2;
+        const rightUrgency = urgencyOrder[right.urgencyLevel] ?? 2;
+        const urgencyRank = leftUrgency - rightUrgency;
+        const timeRank = (new Date(right.createdAt).getTime() || 0) - (new Date(left.createdAt).getTime() || 0);
+        return emergencyRank || urgencyRank || timeRank;
     });
 
     return res.status(200).json(new ApiResponse(200, complaints, "Voice complaints fetched successfully"));

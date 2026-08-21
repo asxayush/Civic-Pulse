@@ -179,3 +179,68 @@ New signups for MVP may use **any email** (still OTP-verified).
 
 **Frontend**: Vite (commonly `http://localhost:5173` or `5174`)  
 **Backend**: `http://localhost:8000`  
+
+---
+
+## 8. Current Session State — 2026-08-22
+
+### Deployment
+- Frontend is deployed on Vercel.
+- Backend is deployed on Render.
+- Production frontend API variable must include the API prefix:
+    `VITE_API_BASE_URL=https://<render-backend>.onrender.com/api`
+- Local `frontend/.env` was corrected from a trailing `/` URL to the `/api` URL.
+- Render backend uses `api/index.js` for Vercel-compatible serverless deployment when applicable.
+- Backend supports `FRONTEND_URL`, `MONGODB_URI`, `JWT_SECRET`, `ADMIN_LOGIN_PIN`, Gemini, Cloudinary, SMTP, and Twilio environment variables.
+
+### Authentication and Portal Access
+- Login supports email/password and optional Admin PIN.
+- Admin PIN defaults to `1234`; production can override it with `ADMIN_LOGIN_PIN`.
+- Admin and Staff portal cards call the real `/api/auth/login` endpoint and redirect to `/admin` or `/staff`; they are not mock navigation.
+- `backend/src/ensureDemoUsers.js` and `npm run seed:demo` create missing demo accounts without deleting existing production data.
+- `npm run seed` remains destructive and must not be used on production.
+- Latest production issue: Admin/Staff buttons returned “email is not registered” because the production MongoDB did not contain the seeded accounts. Run `npm run seed:demo` against the same production `MONGODB_URI`, then redeploy/restart Render.
+- If production login returns HTTP 500, inspect Render logs and confirm the Vercel API URL points to the correct Render service. The expected endpoint is `POST https://<render-backend>.onrender.com/api/auth/login`.
+
+### AI Photo Triage
+- Photo analysis uses Gemini with heuristic fallback.
+- Category fallback now uses title, description, location, selected category, and supporting AI response fields.
+- An AI `miscellaneous` result no longer overrides an explicit Electricity, Water, or Food selection.
+- If all image analysis fails, the selected category remains usable for routing.
+- Confirm Render has a valid `GEMINI_API_KEY`; logs should show Gemini initialization rather than heuristic-only mode.
+- Gemini model retry list was reduced to two models to reduce network/API load.
+
+### Public Voice Emergency Complaints
+- Public frontend route: `/voice-complaint`.
+- Public backend endpoint: `POST /api/voice-complaints` with multipart field `audio` plus `block`, `room`, and `durationSeconds`.
+- Recording supports browser microphone capture, 60-second maximum, 5 MB maximum, processing state, and confirmation screen.
+- Backend accepts WEBM, WAV, MP3, or OGG audio and rate-limits submissions to 3 per IP per 10 minutes.
+- Voice complaints are always saved in the `VoiceComplaint` collection, including when Gemini fails.
+- Gemini audio analysis returns transcript, category, urgency, emergency flag/type, confidence, and summary. Parse failure sets `needsManualReview: true` and defaults to Miscellaneous/normal.
+- High-confidence emergencies require `isEmergency === true` and confidence above `0.7`; they are surfaced in the admin queue and notify admins by email/SMS.
+- No automatic emergency-service call is made.
+- Admin dashboard includes a Voice complaints tab sorted with emergencies first and includes transcript, category, urgency, location, timestamp, and audio playback.
+- Personal WhatsApp currently uses a manual dashboard handoff button. Set frontend `VITE_ADMIN_WHATSAPP_NUMBER` with the international number without `+`; it opens WhatsApp with the recording URL/details prefilled, and the admin presses Send.
+
+### Notifications
+- Email uses Nodemailer and the existing SMTP variables.
+- SMS uses Twilio through `backend/src/utils/sms.js` and only sends for high-confidence voice emergencies.
+- Required Render SMS variables:
+    `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`, `ADMIN_PHONE_NUMBER`.
+- SMS/email failures do not prevent voice complaint persistence.
+- Mailtrap Sandbox captures mail in the Mailtrap inbox and does not deliver to a personal inbox; use a live sending provider for real delivery.
+
+### Storage and Known Deployment Fixes
+- Cloudinary stores complaint images and voice audio.
+- `CLOUDINARY_CLOUD_NAME=Root` was invalid and caused `Invalid cloud_name Root`; replace it in Render with the actual Cloudinary cloud name.
+- Audio upload now falls back to a Data URI if Cloudinary fails, but this is only a temporary safety net and is not suitable for production-scale storage.
+- Express uses `app.set("trust proxy", 1)` so Render IP-based rate limiting works correctly.
+- Dashboard refresh polling was reduced from 8 seconds to 30 seconds, pauses in hidden tabs, and blocks overlapping requests to reduce network load.
+
+### Next Session Checklist
+1. Confirm the exact Render backend URL and set Vercel `VITE_API_BASE_URL` to that URL plus `/api`.
+2. Run `npm run seed:demo` against the production MongoDB URI if Admin/Staff accounts are still missing.
+3. Test Admin login with the Admin PIN and Staff login with the seeded credentials.
+4. Check Render logs for HTTP 500 causes, Gemini initialization, Cloudinary configuration, Twilio configuration, and MongoDB connectivity.
+5. Test `/voice-complaint` end to end and confirm the admin dashboard, email, SMS, and WhatsApp handoff behavior.
+6. Rotate any credentials that were exposed in local `.env` or conversation history.

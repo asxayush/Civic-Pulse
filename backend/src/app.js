@@ -19,7 +19,7 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 
 // CORS Configuration - Permissive for dev environments
-const configuredOrigins = (process.env.FRONTEND_URL || "")
+const configuredOrigins = (process.env.FRONTEND_URL || process.env.CORS_ORIGIN || "")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);

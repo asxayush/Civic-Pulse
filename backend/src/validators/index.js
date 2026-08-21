@@ -86,17 +86,14 @@ const createStaffValidator = () => {
 const complaintValidator = () => {
     return [
         body("title")
-            .trim()
-            .notEmpty()
-            .withMessage("Title is required"),
+            .optional()
+            .trim(),
         body("description")
-            .trim()
-            .notEmpty()
-            .withMessage("Description is required"),
+            .optional()
+            .trim(),
         body("category")
+            .optional()
             .trim()
-            .notEmpty()
-            .withMessage("Category is required")
             .isIn(["electricity", "water", "food", "miscellaneous"])
             .withMessage("Invalid category enum value"),
         body("hostelBlock")

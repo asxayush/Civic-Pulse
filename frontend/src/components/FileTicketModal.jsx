@@ -54,8 +54,12 @@ export const FileTicketModal = ({ isOpen, onClose, onSubmit }) => {
             if (data.predictedCategory && data.predictedCategory !== "miscellaneous") {
                 setCategory(data.predictedCategory);
             }
-            if (data.suggestedTitle) setTitle(data.suggestedTitle);
-            if (data.suggestedDescription) setDescription(data.suggestedDescription);
+            if (data.suggestedTitle) {
+                setTitle((current) => (current.trim() ? current : data.suggestedTitle));
+            }
+            if (data.suggestedDescription) {
+                setDescription((current) => (current.trim() ? current : data.suggestedDescription));
+            }
         } catch (err) {
             setErrorMsg(err.response?.data?.message || "AI triage failed — you can still fill fields manually");
         } finally {
