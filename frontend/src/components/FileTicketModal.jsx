@@ -1,189 +1,272 @@
 import React, { useState } from "react";
-import { X, UploadCloud, Shield, Sparkles } from "lucide-react";
+import { X, UploadCloud, Shield, MapPin, BrainCircuit, Loader2 } from "lucide-react";
+import { complaintService } from "../services/api";
+
+const HOSTEL_BLOCKS = [
+    "Block A - Floor 1", "Block A - Floor 2", "Block A - Floor 3", "Block A - Floor 4", "Block A - Floor 5",
+    "Block B - Floor 1", "Block B - Floor 2", "Block B - Floor 3", "Block B - Floor 4", "Block B - Floor 5",
+    "Block C - Floor 1", "Block C - Floor 2", "Block C - Floor 3", "Block C - Floor 4", "Block C - Floor 5",
+    "Block D - Floor 1", "Block D - Floor 2", "Block D - Floor 3", "Block D - Floor 4", "Block D - Floor 5",
+    "Block E - Floor 1", "Block E - Floor 2", "Block E - Floor 3", "Block E - Floor 4", "Block E - Floor 5",
+    "Block F - Floor 1", "Block F - Floor 2", "Block F - Floor 3", "Block F - Floor 4", "Block F - Floor 5",
+    "Mess / Canteen Area", "Library Building", "Sports Complex", "Main Campus Road", "Other"
+];
 
 export const FileTicketModal = ({ isOpen, onClose, onSubmit }) => {
     const [title, setTitle] = useState("");
     const [category, setCategory] = useState("electricity");
+    const [hostelBlock, setHostelBlock] = useState("");
     const [description, setDescription] = useState("");
     const [isAnonymous, setIsAnonymous] = useState(false);
     const [imagePreview, setImagePreview] = useState(null);
     const [imageFile, setImageFile] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [analyzing, setAnalyzing] = useState(false);
+    const [aiPreview, setAiPreview] = useState(null);
+    const [errorMsg, setErrorMsg] = useState("");
 
     if (!isOpen) return null;
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setImageFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
+    const reset = () => {
+        setTitle("");
+        setCategory("electricity");
+        setHostelBlock("");
+        setDescription("");
+        setIsAnonymous(false);
+        setImagePreview(null);
+        setImageFile(null);
+        setAiPreview(null);
+        setErrorMsg("");
+    };
+
+    const runAiTriage = async (file, block) => {
+        setAnalyzing(true);
+        setErrorMsg("");
+        try {
+            const res = await complaintService.analyzeImage({
+                imageFile: file,
+                hostelBlock: block || hostelBlock
+            });
+            const data = res.data;
+            if (!data) return;
+            setAiPreview(data);
+            if (data.predictedCategory) setCategory(data.predictedCategory);
+            if (data.suggestedTitle) setTitle(data.suggestedTitle);
+            if (data.suggestedDescription) setDescription(data.suggestedDescription);
+        } catch (err) {
+            setErrorMsg(err.response?.data?.message || "AI triage failed — you can still fill fields manually");
+        } finally {
+            setAnalyzing(false);
         }
+    };
+
+    const handleImageChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setImageFile(file);
+        setAiPreview(null);
+        const reader = new FileReader();
+        reader.onloadend = () => setImagePreview(reader.result);
+        reader.readAsDataURL(file);
+        await runAiTriage(file, hostelBlock);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMsg("");
+        if (!imageFile) {
+            setErrorMsg("Photo proof is required");
+            return;
+        }
         setSubmitting(true);
-
-        const formData = {
-            title,
-            category,
-            description,
-            isAnonymous,
-            imagePreview,
-            imageFile
-        };
-
-        await onSubmit(formData);
-        setSubmitting(false);
-        onClose();
+        try {
+            await onSubmit({
+                title,
+                category,
+                hostelBlock,
+                description,
+                isAnonymous,
+                imagePreview,
+                imageFile
+            });
+            reset();
+            onClose();
+        } catch (err) {
+            setErrorMsg(err.response?.data?.message || err.message || "Failed to file complaint");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
+    const field =
+        "w-full px-4 py-2.5 rounded-lg bg-black border border-white/10 text-zinc-100 text-sm focus:outline-none focus:border-white/30 placeholder:text-zinc-600";
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl">
-                
-                {/* Modal Header */}
-                <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-[#002B66] text-white">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-300">
-                            <Sparkles className="w-4 h-4" />
-                        </div>
-                        <div>
-                            <h3 className="text-base font-bold">File a Campus Grievance</h3>
-                            <p className="text-xs text-sky-200">Submit issue under 60 seconds for auto-routing</p>
-                        </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+            <div className="bg-zinc-950 border border-white/10 rounded-xl w-full max-w-xl overflow-hidden shadow-2xl animate-slide-in">
+                <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                    <div>
+                        <h3 className="text-sm font-medium text-white">File a grievance</h3>
+                        <p className="text-xs text-zinc-500">Upload photo → AI fills department, title & description</p>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="p-1 rounded-lg text-sky-200 hover:text-white hover:bg-blue-900 transition"
-                    >
+                    <button type="button" onClick={onClose} className="p-1 text-zinc-500 hover:text-white">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Form Body */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    
-                    {/* Category Dropdown */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            Grievance Category
-                        </label>
-                        <select
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#002B66] transition font-medium"
-                            required
-                        >
-                            <option value="electricity">⚡ Electricity & Appliances</option>
-                            <option value="water">💧 Water Supply & Plumbing</option>
-                            <option value="food">🍲 Hostel Food & Mess Quality</option>
-                            <option value="miscellaneous">📌 Miscellaneous / Infrastructure</option>
-                        </select>
-                    </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                    {errorMsg && (
+                        <div className="p-3 rounded-lg border border-rose-500/30 bg-rose-950/40 text-rose-300 text-xs">
+                            {errorMsg}
+                        </div>
+                    )}
 
-                    {/* Title */}
                     <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            Title / Short Summary
+                        <label className="block text-[11px] font-mono uppercase text-zinc-500 mb-1.5">
+                            Photo proof (AI starts here)
                         </label>
-                        <input
-                            type="text"
-                            placeholder="e.g. Water leakage in Room 304 bathroom"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#002B66] transition placeholder:text-slate-400 font-medium"
-                            required
-                        />
-                    </div>
-
-                    {/* Description */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            Detailed Description
-                        </label>
-                        <textarea
-                            rows={3}
-                            placeholder="Provide details (location, urgency, severity)..."
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className="w-full px-4 py-2.5 rounded-lg bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#002B66] transition placeholder:text-slate-400 resize-none font-medium"
-                            required
-                        />
-                    </div>
-
-                    {/* Image Drag & Drop Upload */}
-                    <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            Photo Proof (Required)
-                        </label>
-                        
                         {imagePreview ? (
-                            <div className="relative h-40 rounded-lg overflow-hidden border border-slate-300 group">
+                            <div className="relative h-40 rounded-lg overflow-hidden border border-white/10">
                                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                                 <button
                                     type="button"
-                                    onClick={() => { setImagePreview(null); setImageFile(null); }}
-                                    className="absolute top-2 right-2 p-1.5 rounded bg-slate-900/80 text-white hover:bg-rose-600 transition"
+                                    onClick={() => {
+                                        setImagePreview(null);
+                                        setImageFile(null);
+                                        setAiPreview(null);
+                                    }}
+                                    className="absolute top-2 right-2 p-1.5 rounded bg-black/80 text-white hover:bg-rose-600"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
+                                {analyzing && (
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 text-xs text-white">
+                                        <Loader2 className="w-4 h-4 animate-spin" /> Analyzing with AI…
+                                    </div>
+                                )}
                             </div>
                         ) : (
-                            <label className="flex flex-col items-center justify-center h-32 px-4 border-2 border-dashed border-slate-300 hover:border-blue-600 rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100 transition text-center group">
-                                <UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-blue-600 transition mb-1" />
-                                <span className="text-xs font-bold text-slate-700">
-                                    Click or Drag photo here to upload proof
-                                </span>
-                                <span className="text-[10px] text-slate-500 mt-1">Supports JPG, PNG (Max 5MB)</span>
+                            <label className="flex flex-col items-center justify-center h-28 border border-dashed border-white/15 hover:border-white/30 rounded-lg cursor-pointer bg-black text-center">
+                                <UploadCloud className="w-6 h-6 text-zinc-500 mb-1" />
+                                <span className="text-xs text-zinc-400">Upload JPG/PNG — AI auto-triages</span>
                                 <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                             </label>
                         )}
                     </div>
 
-                    {/* Anonymous Toggle */}
-                    <div className="p-3.5 rounded-lg bg-blue-50 border border-blue-200 flex items-start gap-3">
-                        <input
-                            type="checkbox"
-                            id="anonymousToggle"
-                            checked={isAnonymous}
-                            onChange={(e) => setIsAnonymous(e.target.checked)}
-                            className="mt-1 w-4 h-4 text-[#002B66] rounded border-slate-300 focus:ring-[#002B66]"
-                        />
-                        <label htmlFor="anonymousToggle" className="cursor-pointer">
-                            <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                                <Shield className="w-3.5 h-3.5 text-blue-700" />
-                                File Anonymously
+                    {aiPreview && (
+                        <div className="p-3 rounded-lg border border-[#0072FF]/30 bg-[#0072FF]/5 text-xs space-y-1.5">
+                            <div className="flex items-center justify-between text-[#0072FF] font-medium">
+                                <span className="inline-flex items-center gap-1">
+                                    <BrainCircuit className="w-3.5 h-3.5" /> AI triage applied
+                                </span>
+                                <span className="font-mono text-[10px] text-zinc-400">
+                                    {Math.round((aiPreview.confidenceScore || 0.9) * 100)}% · {aiPreview.suggestedPriority} · {aiPreview.predictedCategory}
+                                </span>
                             </div>
-                            <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-                                Hides your name from the public community feed, but remains visible to staff/admin for accountability.
-                            </p>
-                        </label>
+                            <p className="text-zinc-400">{aiPreview.aiSummary}</p>
+                            {aiPreview.triageNotes && (
+                                <p className="text-zinc-500 text-[11px]">Why: {aiPreview.triageNotes}</p>
+                            )}
+                            {aiPreview.detectedObjects?.length > 0 && (
+                                <p className="text-[11px] text-zinc-500 font-mono">
+                                    Seen: {aiPreview.detectedObjects.slice(0, 6).join(", ")}
+                                </p>
+                            )}
+                            <p className="text-[10px] text-zinc-600">Review fields below — AI can be wrong; edit before submit.</p>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[11px] font-mono uppercase text-zinc-500 mb-1.5">
+                                Department / category
+                            </label>
+                            <select value={category} onChange={(e) => setCategory(e.target.value)} className={field} required>
+                                <option value="electricity">Electricity</option>
+                                <option value="water">Water</option>
+                                <option value="food">Food & Mess</option>
+                                <option value="miscellaneous">Miscellaneous</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-[11px] font-mono uppercase text-zinc-500 mb-1.5">
+                                <span className="inline-flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" /> Location
+                                </span>
+                            </label>
+                            <select
+                                value={hostelBlock}
+                                onChange={(e) => setHostelBlock(e.target.value)}
+                                className={field}
+                                required
+                            >
+                                <option value="" disabled>
+                                    Select block…
+                                </option>
+                                {HOSTEL_BLOCKS.map((b) => (
+                                    <option key={b} value={b}>
+                                        {b}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center justify-end gap-3 pt-2">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition"
-                        >
+                    <div>
+                        <label className="block text-[11px] font-mono uppercase text-zinc-500 mb-1.5">Title</label>
+                        <input
+                            type="text"
+                            placeholder="AI will suggest after photo upload"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className={field}
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-[11px] font-mono uppercase text-zinc-500 mb-1.5">Description</label>
+                        <textarea
+                            rows={3}
+                            placeholder="AI will draft from the photo — edit if needed"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className={`${field} resize-none`}
+                            required
+                        />
+                    </div>
+
+                    <label className="flex items-start gap-3 p-3 rounded-lg border border-white/10 bg-black cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={isAnonymous}
+                            onChange={(e) => setIsAnonymous(e.target.checked)}
+                            className="mt-0.5"
+                        />
+                        <span>
+                            <span className="text-xs font-medium text-white inline-flex items-center gap-1">
+                                <Shield className="w-3.5 h-3.5 text-[#0072FF]" /> File anonymously
+                            </span>
+                            <span className="block text-[11px] text-zinc-500 mt-0.5">
+                                Hidden on public feed; visible to staff/admin.
+                            </span>
+                        </span>
+                    </label>
+
+                    <div className="flex items-center justify-end gap-3 pt-1">
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-zinc-400 hover:text-white">
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            disabled={submitting}
-                            className="px-6 py-2.5 rounded-lg text-xs font-extrabold bg-[#002B66] hover:bg-[#001D47] text-white transition shadow-md active:scale-95 disabled:opacity-50 uppercase tracking-wider"
+                            disabled={submitting || analyzing}
+                            className="px-5 py-2.5 rounded-lg text-xs font-medium bg-white text-black hover:bg-zinc-200 disabled:opacity-50"
                         >
-                            {submitting ? "Routing Ticket..." : "Submit & Auto-Route"}
+                            {submitting ? "Submitting…" : "Submit & route"}
                         </button>
                     </div>
                 </form>
-
             </div>
         </div>
     );

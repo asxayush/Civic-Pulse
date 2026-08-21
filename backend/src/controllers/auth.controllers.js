@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { OAuth2Client } from "google-auth-library";
 import { asyncHandler } from "../utils/asyncHandlers.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
@@ -8,15 +7,21 @@ import { User } from "../models/user.models.js";
 import { OTP } from "../models/otp.models.js";
 import { sendOTPEmail } from "../utils/mailer.js";
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// ─── Helper: Generate JWT Token ───
+const generateToken = (user) => {
+    return jwt.sign(
+        { _id: user._id, role: user.role },
+        process.env.JWT_SECRET || "default_jwt_secret",
+        { expiresIn: process.env.JWT_SECRET_EXPIRY || "7d" }
+    );
+};
 
+// ─── POST /api/auth/register ───
 const registerUser = asyncHandler(async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, password } = req.body;
+    const email = String(req.body.email || "").toLowerCase().trim();
 
-    const requiredDomain = process.env.COLLEGE_EMAIL_DOMAIN || "@yourcollege.edu.in";
-    if (requiredDomain && !email.toLowerCase().endsWith(requiredDomain.toLowerCase())) {
-        throw new ApiError(400, `Registration restricted. Email must end with ${requiredDomain}`);
-    }
+    // MVP: any valid email is allowed (domain lock disabled).
 
     const existedUser = await User.findOne({ email });
 
@@ -43,29 +48,41 @@ const registerUser = asyncHandler(async (req, res) => {
     const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
 
     await OTP.deleteMany({ email });
-    await OTP.create({
-        email,
-        otp: generatedOTP
-    });
+    await OTP.create({ email, otp: generatedOTP });
 
     await sendOTPEmail(email, generatedOTP);
 
     const safeUser = await User.findById(user._id).select("-password");
 
+    const payload = { user: safeUser };
+    // MVP / no SMTP: expose OTP so UI can complete verification without email
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+        payload.devOTP = generatedOTP;
+        console.log(`\n[OTP] ${email} → ${generatedOTP}\n`);
+    }
+
     return res.status(201).json(
-        new ApiResponse(201, { user: safeUser }, "User registered successfully. Verification OTP has been sent to your email.")
+        new ApiResponse(
+            201,
+            payload,
+            !process.env.SMTP_HOST || !process.env.SMTP_USER
+                ? `Registered. Dev OTP: ${generatedOTP} (also in server logs)`
+                : "User registered successfully. Verification OTP has been sent to your email."
+        )
     );
 });
 
+// ─── POST /api/auth/verify-otp ───
 const verifyOTP = asyncHandler(async (req, res) => {
-    const { email, otp } = req.body;
+    const email = String(req.body.email || "").toLowerCase().trim();
+    const otp = String(req.body.otp || "").trim();
 
     const otpRecord = await OTP.findOne({ email });
     if (!otpRecord) {
         throw new ApiError(400, "Expired or invalid OTP. Please request a new verification code.");
     }
 
-    if (otpRecord.otp !== otp) {
+    if (String(otpRecord.otp) !== otp) {
         throw new ApiError(400, "Invalid OTP code");
     }
 
@@ -79,17 +96,7 @@ const verifyOTP = asyncHandler(async (req, res) => {
     user.isVerified = true;
     await user.save();
 
-    const token = jwt.sign(
-        {
-            _id: user._id,
-            role: user.role
-        },
-        process.env.JWT_SECRET || "default_jwt_secret",
-        {
-            expiresIn: process.env.JWT_SECRET_EXPIRY || "1d"
-        }
-    );
-
+    const token = generateToken(user);
     const safeUser = await User.findById(user._id).select("-password");
 
     return res.status(200).json(
@@ -97,8 +104,10 @@ const verifyOTP = asyncHandler(async (req, res) => {
     );
 });
 
+// ─── POST /api/auth/login ───
 const loginUser = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const email = String(req.body.email || "").toLowerCase().trim();
+    const { password } = req.body;
 
     const existedUser = await User.findOne({ email });
     if (!existedUser) {
@@ -111,24 +120,14 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     if (!existedUser.isVerified) {
-        throw new ApiError(403, "Please verify your email before logging in");
+        throw new ApiError(403, "Please verify your email with the OTP before logging in");
     }
 
     if (existedUser.isBanned) {
         throw new ApiError(403, "Your account has been banned due to repeated policy violations");
     }
 
-    const token = jwt.sign(
-        {
-            _id: existedUser._id,
-            role: existedUser.role
-        },
-        process.env.JWT_SECRET || "default_jwt_secret",
-        {
-            expiresIn: process.env.JWT_SECRET_EXPIRY || "1d"
-        }
-    );
-
+    const token = generateToken(existedUser);
     const safeUser = await User.findById(existedUser._id).select("-password");
 
     return res.status(200).json(
@@ -136,76 +135,7 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 });
 
-const googleAuth = asyncHandler(async (req, res) => {
-    const { idToken, email: bodyEmail, name: bodyName } = req.body;
-    let email = bodyEmail;
-    let name = bodyName;
-
-    // Optional Google ID Token verification if GOOGLE_CLIENT_ID is provided
-    if (idToken && process.env.GOOGLE_CLIENT_ID) {
-        try {
-            const ticket = await googleClient.verifyIdToken({
-                idToken,
-                audience: process.env.GOOGLE_CLIENT_ID
-            });
-            const payload = ticket.getPayload();
-            email = payload.email;
-            name = payload.name;
-        } catch (err) {
-            throw new ApiError(400, "Google authentication verification failed");
-        }
-    }
-
-    if (!email) {
-        throw new ApiError(400, "Google authentication email required");
-    }
-
-    // Domain check
-    const requiredDomain = process.env.COLLEGE_EMAIL_DOMAIN || "@yourcollege.edu.in";
-    if (requiredDomain && !email.toLowerCase().endsWith(requiredDomain.toLowerCase())) {
-        throw new ApiError(400, `Google login restricted. Email must end with ${requiredDomain}`);
-    }
-
-    let user = await User.findOne({ email });
-
-    if (!user) {
-        // Create user with verified status for Google SSO
-        const randomPassword = Math.random().toString(36).slice(-10) + Date.now();
-        user = await User.create({
-            name: name || email.split("@")[0],
-            email,
-            password: randomPassword,
-            role: "student",
-            isVerified: true
-        });
-    } else {
-        if (user.isBanned) {
-            throw new ApiError(403, "Your account has been banned due to repeated policy violations");
-        }
-        if (!user.isVerified) {
-            user.isVerified = true;
-            await user.save();
-        }
-    }
-
-    const token = jwt.sign(
-        {
-            _id: user._id,
-            role: user.role
-        },
-        process.env.JWT_SECRET || "default_jwt_secret",
-        {
-            expiresIn: process.env.JWT_SECRET_EXPIRY || "1d"
-        }
-    );
-
-    const safeUser = await User.findById(user._id).select("-password");
-
-    return res.status(200).json(
-        new ApiResponse(200, { user: safeUser, token }, "Authenticated successfully via Google SSO!")
-    );
-});
-
+// ─── GET /api/auth/me ───
 const getCurrentUser = asyncHandler(async (req, res) => {
     return res.status(200).json(
         new ApiResponse(200, req.user, "User profile fetched successfully")
@@ -216,6 +146,5 @@ export {
     registerUser,
     verifyOTP,
     loginUser,
-    googleAuth,
     getCurrentUser
 };

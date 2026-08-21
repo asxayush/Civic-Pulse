@@ -6,8 +6,8 @@ const userRegisterValidator = () => {
             .trim()
             .notEmpty()
             .withMessage("Name is required")
-            .isLength({ min: 3 })
-            .withMessage("Name must be at least 3 characters long"),
+            .isLength({ min: 2 })
+            .withMessage("Name must be at least 2 characters long"),
         body("email")
             .trim()
             .notEmpty()
@@ -49,8 +49,8 @@ const otpVerifyValidator = () => {
             .trim()
             .notEmpty()
             .withMessage("OTP is required")
-            .isLength({ min: 6, max: 6 })
-            .withMessage("OTP must be 6 digits")
+            .isLength({ min: 4, max: 6 })
+            .withMessage("OTP must be 4-6 digits")
     ];
 };
 
@@ -97,10 +97,13 @@ const complaintValidator = () => {
             .withMessage("Category is required")
             .isIn(["electricity", "water", "food", "miscellaneous"])
             .withMessage("Invalid category enum value"),
+        body("hostelBlock")
+            .trim()
+            .notEmpty()
+            .withMessage("Hostel block location is required"),
         body("isAnonymous")
             .optional()
-            .isBoolean()
-            .withMessage("isAnonymous must be a boolean value")
+            .customSanitizer(val => val === "true" || val === true)
     ];
 };
 
@@ -110,8 +113,19 @@ const complaintStatusValidator = () => {
             .trim()
             .notEmpty()
             .withMessage("Status is required")
-            .isIn(["pending", "in-progress", "resolved"])
-            .withMessage("Invalid status value")
+            .isIn(["PENDING", "IN_PROGRESS", "RESOLVED_BY_STAFF", "VERIFIED_CLOSED", "REOPENED"])
+            .withMessage("Invalid status value. Must be one of: PENDING, IN_PROGRESS, RESOLVED_BY_STAFF, VERIFIED_CLOSED, REOPENED")
+    ];
+};
+
+const resolutionOtpValidator = () => {
+    return [
+        body("otp")
+            .trim()
+            .notEmpty()
+            .withMessage("Resolution verification OTP is required")
+            .isLength({ min: 4, max: 4 })
+            .withMessage("Resolution OTP must be 4 digits")
     ];
 };
 
@@ -121,5 +135,6 @@ export {
     otpVerifyValidator,
     createStaffValidator,
     complaintValidator,
-    complaintStatusValidator
+    complaintStatusValidator,
+    resolutionOtpValidator
 };

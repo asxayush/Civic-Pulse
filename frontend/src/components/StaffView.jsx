@@ -1,118 +1,175 @@
 import React, { useState } from "react";
 import { TicketCard } from "./TicketCard";
-import { Wrench, CheckCircle2, AlertOctagon } from "lucide-react";
+import { Wrench, CheckCircle2, ShieldAlert, Upload, X } from "lucide-react";
 
 export const StaffView = ({
-    complaints,
+    complaints = [],
     onStatusChange,
     onMarkInvalid,
-    onOpenDetail
+    onOpenDetail,
+    onResolveWithImage
 }) => {
-    const [selectedDept, setSelectedDept] = useState("electricity");
     const [invalidModalTicketId, setInvalidModalTicketId] = useState(null);
+    const [resolveModal, setResolveModal] = useState(null);
 
-    const deptComplaints = complaints.filter(
-        (c) => c.category === selectedDept
-    );
+    const handleResolveImageChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setResolveModal((prev) => ({
+                ...prev,
+                afterImageFile: file,
+                afterImagePreview: reader.result
+            }));
+        };
+        reader.readAsDataURL(file);
+    };
 
-    const handleConfirmMarkInvalid = () => {
-        if (invalidModalTicketId) {
-            onMarkInvalid(invalidModalTicketId);
-            setInvalidModalTicketId(null);
+    const handleStatusChangeIntercept = (id, newStatus) => {
+        if (newStatus === "RESOLVED_BY_STAFF") {
+            setResolveModal({ complaintId: id, afterImageFile: null, afterImagePreview: null });
+        } else {
+            onStatusChange(id, newStatus);
         }
+    };
+
+    const handleConfirmResolve = () => {
+        if (!resolveModal) return;
+        if (onResolveWithImage && resolveModal.afterImageFile) {
+            onResolveWithImage(resolveModal.complaintId, resolveModal.afterImageFile);
+        } else {
+            onStatusChange(resolveModal.complaintId, "RESOLVED_BY_STAFF");
+        }
+        setResolveModal(null);
     };
 
     return (
         <div className="space-y-6">
-            
-            {/* Toolbar */}
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-50 border border-blue-200 text-[#002B66] flex items-center justify-center">
-                        <Wrench className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h3 className="text-base font-bold text-slate-900">Department Staff Portal</h3>
-                        <p className="text-xs text-slate-500">Review auto-routed complaints and update resolution status</p>
-                    </div>
+            <div className="p-4 rounded-xl border border-white/10 bg-zinc-950 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg border border-white/10 bg-black flex items-center justify-center text-[#0072FF]">
+                    <Wrench className="w-5 h-5" />
                 </div>
-
-                <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-lg border border-slate-200 flex-wrap">
-                    {[
-                        { id: "electricity", label: "⚡ Electricity" },
-                        { id: "water", label: "💧 Water" },
-                        { id: "food", label: "🍲 Food & Mess" },
-                        { id: "miscellaneous", label: "📌 Miscellaneous" }
-                    ].map((dept) => (
-                        <button
-                            key={dept.id}
-                            onClick={() => setSelectedDept(dept.id)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition ${
-                                selectedDept === dept.id
-                                    ? "bg-[#002B66] text-white shadow"
-                                    : "text-slate-600 hover:text-slate-900"
-                            }`}
-                        >
-                            {dept.label}
-                        </button>
-                    ))}
+                <div>
+                    <h3 className="text-sm font-medium text-white">Assigned queue</h3>
+                    <p className="text-xs text-zinc-500">Tickets auto-routed to your department · {complaints.length} open</p>
                 </div>
             </div>
 
-            {/* Tickets Grid */}
-            {deptComplaints.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {deptComplaints.map((item) => (
+            {complaints.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {complaints.map((item) => (
                         <TicketCard
                             key={item._id || item.ticketId}
                             complaint={item}
                             currentRole="staff"
-                            onStatusChange={onStatusChange}
+                            onStatusChange={handleStatusChangeIntercept}
                             onMarkInvalid={(id) => setInvalidModalTicketId(id)}
                             onOpenDetail={onOpenDetail}
                         />
                     ))}
                 </div>
             ) : (
-                <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl max-w-md mx-auto my-8 shadow-sm">
-                    <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
-                    <h4 className="text-base font-bold text-slate-900">No Open Issues in {selectedDept.toUpperCase()}</h4>
-                    <p className="text-xs text-slate-500 mt-1">
-                        All grievances routed to this department are currently resolved.
-                    </p>
+                <div className="p-12 text-center border border-white/10 rounded-xl bg-zinc-950 max-w-md mx-auto">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
+                    <h4 className="text-sm font-medium text-white">Queue clear</h4>
+                    <p className="text-xs text-zinc-500 mt-1">No assigned tickets right now.</p>
                 </div>
             )}
 
-            {/* Mark Invalid Warning Modal */}
             {invalidModalTicketId && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-                    <div className="bg-white border border-rose-200 rounded-2xl w-full max-w-md p-6 text-center shadow-2xl">
-                        <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
-                            <AlertOctagon className="w-6 h-6" />
-                        </div>
-                        <h3 className="text-base font-bold text-slate-900">Flag as Invalid / Spam Grievance?</h3>
-                        <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-                            Marking a complaint invalid records a strike on the student's profile (`invalidComplaintCount++`). Accumulating 3 strikes automatically bans their account.
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-zinc-950 border border-white/10 rounded-xl w-full max-w-md p-6 text-center animate-slide-in">
+                        <ShieldAlert className="w-8 h-8 text-amber-400 mx-auto mb-3" />
+                        <h3 className="text-sm font-medium text-white">Flag for admin review?</h3>
+                        <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+                            Strike applies only after admin confirms — two-tier anti-abuse.
                         </p>
-                        
                         <div className="flex items-center justify-center gap-3 mt-6">
                             <button
+                                type="button"
                                 onClick={() => setInvalidModalTicketId(null)}
-                                className="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900"
+                                className="px-4 py-2 text-xs text-zinc-400 hover:text-white"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={handleConfirmMarkInvalid}
-                                className="px-5 py-2 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white transition shadow"
+                                type="button"
+                                onClick={() => {
+                                    onMarkInvalid(invalidModalTicketId);
+                                    setInvalidModalTicketId(null);
+                                }}
+                                className="px-5 py-2 rounded-lg text-xs font-medium bg-amber-500 text-black hover:bg-amber-400"
                             >
-                                Confirm Strike & Mark Fake
+                                Send to admin
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
+            {resolveModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-zinc-950 border border-white/10 rounded-xl w-full max-w-md p-6 animate-slide-in">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
+                        <h3 className="text-sm font-medium text-white text-center">Mark as resolved</h3>
+                        <p className="text-xs text-zinc-400 mt-2 text-center">
+                            Upload after-photo proof. A 4-digit OTP goes to the student.
+                        </p>
+
+                        <div className="mt-4">
+                            <label className="block text-[11px] font-mono uppercase text-zinc-500 mb-2">
+                                Resolution photo
+                            </label>
+                            {resolveModal.afterImagePreview ? (
+                                <div className="relative h-40 rounded-lg overflow-hidden border border-white/10">
+                                    <img
+                                        src={resolveModal.afterImagePreview}
+                                        alt="Resolution proof"
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setResolveModal((p) => ({
+                                                ...p,
+                                                afterImageFile: null,
+                                                afterImagePreview: null
+                                            }))
+                                        }
+                                        className="absolute top-2 right-2 p-1.5 rounded bg-black/80 text-white hover:bg-rose-600"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="flex flex-col items-center justify-center h-28 border border-dashed border-white/15 hover:border-white/30 rounded-lg cursor-pointer bg-black text-center">
+                                    <Upload className="w-5 h-5 text-zinc-500 mb-1" />
+                                    <span className="text-xs text-zinc-400">Upload after photo</span>
+                                    <input type="file" accept="image/*" onChange={handleResolveImageChange} className="hidden" />
+                                </label>
+                            )}
+                        </div>
+
+                        <div className="flex items-center justify-center gap-3 mt-5">
+                            <button
+                                type="button"
+                                onClick={() => setResolveModal(null)}
+                                className="px-4 py-2 text-xs text-zinc-400 hover:text-white"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmResolve}
+                                className="px-5 py-2 rounded-lg text-xs font-medium bg-emerald-500 text-black hover:bg-emerald-400"
+                            >
+                                Confirm & send OTP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

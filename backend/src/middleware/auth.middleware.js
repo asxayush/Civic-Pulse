@@ -3,6 +3,8 @@ import { asyncHandler } from "../utils/asyncHandlers.js";
 import { ApiError } from "../utils/api-error.js";
 import { User } from "../models/user.models.js";
 
+const JWT_SECRET = process.env.JWT_SECRET || "default_jwt_secret";
+
 export const verifyJWT = asyncHandler(async (req, res, next) => {
     const token = req.header("Authorization")?.replace("Bearer ", "") || req.cookies?.accessToken;
 
@@ -11,7 +13,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     }
 
     try {
-        const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+        const decodedToken = jwt.verify(token, JWT_SECRET);
         const user = await User.findById(decodedToken?._id).select("-password");
 
         if (!user) {

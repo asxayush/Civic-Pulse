@@ -1,131 +1,123 @@
 import React, { useState } from "react";
 import { TicketCard } from "./TicketCard";
-import { Search, Filter, PlusCircle, Sparkles, AlertCircle } from "lucide-react";
+import { Search, PlusCircle, Sparkles } from "lucide-react";
 
 export const StudentView = ({
-    complaints,
+    publicFeed = [],
+    myComplaints = [],
     onUpvote,
     onOpenFileModal,
-    onOpenDetail
+    onOpenDetail,
+    onVerifyResolution
 }) => {
     const [activeTab, setActiveTab] = useState("community");
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [selectedStatus, setSelectedStatus] = useState("all");
 
-    const filteredComplaints = complaints.filter((item) => {
-        if (activeTab === "my" && !item.isMine) return false;
-        
+    const source = activeTab === "my" ? myComplaints : publicFeed;
+
+    const filtered = source.filter((item) => {
         if (selectedCategory !== "all" && item.category !== selectedCategory) return false;
         if (selectedStatus !== "all" && item.status !== selectedStatus) return false;
-
-        if (searchQuery.trim() !== "") {
-            const query = searchQuery.toLowerCase();
-            const matchTicket = item.ticketId?.toLowerCase().includes(query);
-            const matchTitle = item.title?.toLowerCase().includes(query);
-            const matchDesc = item.description?.toLowerCase().includes(query);
-            return matchTicket || matchTitle || matchDesc;
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            return (
+                item.ticketId?.toLowerCase().includes(q) ||
+                item.title?.toLowerCase().includes(q) ||
+                item.description?.toLowerCase().includes(q) ||
+                item.hostelBlock?.toLowerCase().includes(q)
+            );
         }
-
         return true;
     });
 
+    const seg = (id, label, count) => (
+        <button
+            type="button"
+            onClick={() => setActiveTab(id)}
+            className={`px-3.5 py-1.5 rounded-md text-xs font-medium transition ${
+                activeTab === id ? "bg-white text-black" : "text-zinc-400 hover:text-white"
+            }`}
+        >
+            {label} ({count})
+        </button>
+    );
+
     return (
         <div className="space-y-6">
-            
-            {/* Toolbar & Filters */}
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                {/* Tabs */}
-                <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200 w-full sm:w-auto">
-                    <button
-                        onClick={() => setActiveTab("community")}
-                        className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition ${
-                            activeTab === "community"
-                                ? "bg-[#002B66] text-white shadow"
-                                : "text-slate-600 hover:text-slate-900"
-                        }`}
-                    >
-                        Community Feed ({complaints.length})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("my")}
-                        className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-bold transition ${
-                            activeTab === "my"
-                                ? "bg-[#002B66] text-white shadow"
-                                : "text-slate-600 hover:text-slate-900"
-                        }`}
-                    >
-                        My Complaints ({complaints.filter(c => c.isMine).length})
-                    </button>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-3 rounded-xl border border-white/10 bg-zinc-950">
+                <div className="flex items-center gap-1 bg-black p-1 rounded-lg border border-white/10">
+                    {seg("community", "Community", publicFeed.length)}
+                    {seg("my", "My complaints", myComplaints.length)}
                 </div>
 
-                {/* Filters & Search */}
                 <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
-                    <div className="relative flex-1 sm:w-64">
-                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <div className="relative flex-1 sm:w-56">
+                        <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
                         <input
                             type="text"
-                            placeholder="Search ticket ID or title..."
+                            placeholder="Search…"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-slate-50 border border-slate-300 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600"
+                            className="w-full pl-9 pr-3 py-2 rounded-lg bg-black border border-white/10 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-white/30"
                         />
                     </div>
-
                     <select
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-300 text-xs text-slate-700 font-medium focus:outline-none focus:border-blue-600 capitalize"
+                        className="px-3 py-2 rounded-lg bg-black border border-white/10 text-xs text-zinc-300 focus:outline-none capitalize"
                     >
-                        <option value="all">All Categories</option>
-                        <option value="electricity">⚡ Electricity</option>
-                        <option value="water">💧 Water</option>
-                        <option value="food">🍲 Food & Mess</option>
-                        <option value="miscellaneous">📌 Miscellaneous</option>
+                        <option value="all">All categories</option>
+                        <option value="electricity">Electricity</option>
+                        <option value="water">Water</option>
+                        <option value="food">Food & Mess</option>
+                        <option value="miscellaneous">Miscellaneous</option>
                     </select>
-
                     <select
                         value={selectedStatus}
                         onChange={(e) => setSelectedStatus(e.target.value)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-300 text-xs text-slate-700 font-medium focus:outline-none focus:border-blue-600 capitalize"
+                        className="px-3 py-2 rounded-lg bg-black border border-white/10 text-xs text-zinc-300 focus:outline-none"
                     >
-                        <option value="all">All Statuses</option>
-                        <option value="pending">Pending</option>
-                        <option value="in-progress">In-Progress</option>
-                        <option value="resolved">Resolved</option>
+                        <option value="all">All statuses</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="IN_PROGRESS">In progress</option>
+                        <option value="RESOLVED_BY_STAFF">Awaiting verification</option>
+                        <option value="VERIFIED_CLOSED">Verified closed</option>
+                        <option value="REOPENED">Reopened</option>
                     </select>
                 </div>
             </div>
 
-            {/* Complaints Grid */}
-            {filteredComplaints.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredComplaints.map((item) => (
+            {filtered.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filtered.map((item) => (
                         <TicketCard
                             key={item._id || item.ticketId}
                             complaint={item}
                             currentRole="student"
                             onUpvote={onUpvote}
                             onOpenDetail={onOpenDetail}
+                            onVerifyResolution={onVerifyResolution}
                         />
                     ))}
                 </div>
             ) : (
-                <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl max-w-md mx-auto my-8 shadow-sm">
-                    <Sparkles className="w-10 h-10 text-blue-600 mx-auto mb-3" />
-                    <h4 className="text-base font-bold text-slate-900">No Grievances Found</h4>
-                    <p className="text-xs text-slate-500 mt-1 mb-5">
-                        {searchQuery ? "No tickets match your search parameters." : "No grievances have been filed in this view yet."}
+                <div className="p-12 text-center border border-white/10 rounded-xl bg-zinc-950 max-w-md mx-auto">
+                    <Sparkles className="w-8 h-8 text-[#0072FF] mx-auto mb-3" />
+                    <h4 className="text-sm font-medium text-white">No grievances found</h4>
+                    <p className="text-xs text-zinc-500 mt-1 mb-5">
+                        {searchQuery ? "Nothing matches your filters." : "File your first campus grievance."}
                     </p>
                     <button
+                        type="button"
                         onClick={onOpenFileModal}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-[#002B66] hover:bg-[#001D47] text-white transition shadow"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium bg-white text-black hover:bg-zinc-200"
                     >
-                        <PlusCircle className="w-4 h-4" /> File Grievance
+                        <PlusCircle className="w-4 h-4" /> File grievance
                     </button>
                 </div>
             )}
-
         </div>
     );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, UserPlus, ShieldCheck } from "lucide-react";
+import { X, UserPlus } from "lucide-react";
 
 export const StaffModal = ({ isOpen, onClose, onSubmit }) => {
     const [name, setName] = useState("");
@@ -7,91 +7,94 @@ export const StaffModal = ({ isOpen, onClose, onSubmit }) => {
     const [password, setPassword] = useState("");
     const [department, setDepartment] = useState("electricity");
     const [submitting, setSubmitting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
 
     if (!isOpen) return null;
 
+    const field =
+        "w-full px-4 py-2.5 rounded-lg bg-black border border-white/10 text-zinc-100 text-sm focus:outline-none focus:border-white/30";
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMsg("");
         setSubmitting(true);
-        await onSubmit({ name, email, password, department });
-        setSubmitting(false);
-        onClose();
+        try {
+            await onSubmit({ name, email, password, department });
+            setName("");
+            setEmail("");
+            setPassword("");
+            setDepartment("electricity");
+            onClose();
+        } catch (err) {
+            setErrorMsg(err.response?.data?.message || err.message || "Failed to create staff");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
-                <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                            <UserPlus className="w-4 h-4" />
-                        </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+            <div className="bg-zinc-950 border border-white/10 rounded-xl w-full max-w-md overflow-hidden animate-slide-in">
+                <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <UserPlus className="w-4 h-4 text-[#0072FF]" />
                         <div>
-                            <h3 className="text-base font-bold text-slate-100">Create Staff Account</h3>
-                            <p className="text-xs text-slate-400">Provision department staff for auto-routing</p>
+                            <h3 className="text-sm font-medium text-white">Provision staff</h3>
+                            <p className="text-xs text-zinc-500">Department account for auto-routing</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <button type="button" onClick={onClose} className="p-1 text-zinc-500 hover:text-white">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    {errorMsg && (
+                        <div className="p-3 rounded-lg border border-rose-500/30 text-rose-300 text-xs">{errorMsg}</div>
+                    )}
                     <div>
-                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Staff Name</label>
-                        <input
-                            type="text"
-                            placeholder="e.g. John Doe (Electrician)"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-indigo-500 transition"
-                            required
-                        />
+                        <label className="block text-[11px] font-mono uppercase text-zinc-500 mb-1.5">Name</label>
+                        <input className={field} value={name} onChange={(e) => setName(e.target.value)} required />
                     </div>
-
                     <div>
-                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Email Address</label>
+                        <label className="block text-[11px] font-mono uppercase text-zinc-500 mb-1.5">Email</label>
                         <input
                             type="email"
-                            placeholder="staff.electrician@yourcollege.edu.in"
+                            className={field}
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-indigo-500 transition"
                             required
                         />
                     </div>
-
                     <div>
-                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Password</label>
+                        <label className="block text-[11px] font-mono uppercase text-zinc-500 mb-1.5">Password</label>
                         <input
                             type="password"
-                            placeholder="••••••••"
+                            className={field}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-indigo-500 transition"
                             required
                         />
                     </div>
-
                     <div>
-                        <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Assigned Department</label>
-                        <select
-                            value={department}
-                            onChange={(e) => setDepartment(e.target.value)}
-                            className="w-full px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:border-indigo-500 transition"
-                            required
-                        >
-                            <option value="electricity">⚡ Electricity</option>
-                            <option value="water">💧 Water</option>
-                            <option value="food">🍲 Food & Mess</option>
-                            <option value="miscellaneous">📌 Miscellaneous</option>
+                        <label className="block text-[11px] font-mono uppercase text-zinc-500 mb-1.5">Department</label>
+                        <select className={field} value={department} onChange={(e) => setDepartment(e.target.value)}>
+                            <option value="electricity">Electricity</option>
+                            <option value="water">Water</option>
+                            <option value="food">Food</option>
+                            <option value="miscellaneous">Miscellaneous</option>
                         </select>
                     </div>
-
-                    <div className="flex items-center justify-end gap-3 pt-3">
-                        <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">Cancel</button>
-                        <button type="submit" disabled={submitting} className="px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-lg shadow-indigo-600/20">
-                            {submitting ? "Creating..." : "Provision Staff Account"}
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button type="button" onClick={onClose} className="px-4 py-2 text-xs text-zinc-400 hover:text-white">
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={submitting}
+                            className="px-5 py-2 rounded-lg text-xs font-medium bg-white text-black hover:bg-zinc-200 disabled:opacity-50"
+                        >
+                            {submitting ? "Creating…" : "Create staff"}
                         </button>
                     </div>
                 </form>
