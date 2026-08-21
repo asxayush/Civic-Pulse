@@ -111,6 +111,7 @@ export const analyzeComplaintImage = async (imageBuffer, mimeType, title = "", d
     if (client && imageBuffer) {
         try {
             const base64Image = imageBuffer.toString("base64");
+            const cleanMime = String(mimeType || "image/jpeg").split(";")[0].trim().toLowerCase();
             const prompt = `You are Civic Pulse campus grievance triage AI. Analyze the PHOTO FIRST (primary evidence), then any text hints.
 
 Categories (pick exactly one):
@@ -147,7 +148,7 @@ Return ONLY valid JSON (no markdown):
                         { text: prompt },
                         {
                             inlineData: {
-                                mimeType: mimeType || "image/jpeg",
+                                mimeType: cleanMime,
                                 data: base64Image
                             }
                         }
@@ -251,6 +252,7 @@ export const analyzeVoiceComplaint = async (audioBuffer, mimeType = "audio/webm"
     const client = getAiClient();
     if (!client || !audioBuffer) return null;
     let rawResponse = "";
+    const cleanMime = String(mimeType || "audio/webm").split(";")[0].trim().toLowerCase();
 
     const prompt = `You are analyzing a voice complaint from a college hostel/campus complaint system.
 Listen to the audio and respond ONLY in valid JSON, no markdown, no extra text:
@@ -271,7 +273,7 @@ Rules for is_emergency=true: only clear verbal indicators of immediate danger su
                 role: "user",
                 parts: [
                     { text: prompt },
-                    { inlineData: { mimeType, data: audioBuffer.toString("base64") } }
+                    { inlineData: { mimeType: cleanMime, data: audioBuffer.toString("base64") } }
                 ]
             }
         ]);
