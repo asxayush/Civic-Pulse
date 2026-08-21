@@ -7,7 +7,7 @@ import { roleHome } from "./ProtectedRoute";
 import { authService } from "../services/api";
 import { ArrowLeft, Shield, Wrench, UserCheck, ArrowUpRight, LockKeyhole } from "lucide-react";
 
-const DEMOS = [
+const PORTALS = [
     {
         role: "Admin portal",
         email: "admin@yourcollege.edu.in",
@@ -37,7 +37,7 @@ export const LoginPage = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [toast, setToast] = useState(null);
-    const [demoLoading, setDemoLoading] = useState(null);
+    const [portalLoading, setPortalLoading] = useState(null);
 
     if (loading) {
         return (
@@ -51,18 +51,18 @@ export const LoginPage = () => {
         return <Navigate to={location.state?.from || roleHome(currentUser.role)} replace />;
     }
 
-    const quickDemo = async (demo) => {
-        setDemoLoading(demo.email);
+    const openPortal = async (portal) => {
+        setPortalLoading(portal.email);
         setToast(null);
         try {
-            const res = await authService.login(demo.email, demo.password, demo.adminPin);
+            const res = await authService.login(portal.email, portal.password, portal.adminPin);
             const user = res.data?.user;
             loginSuccess(user);
             navigate(roleHome(user?.role || "student"), { replace: true });
         } catch (err) {
-            setToast(err.response?.data?.message || "Demo login failed — run backend seed if needed");
+            setToast(err.response?.data?.message || "Portal sign-in failed. Check the account or seed the database.");
         } finally {
-            setDemoLoading(null);
+            setPortalLoading(null);
         }
     };
 
@@ -98,25 +98,25 @@ export const LoginPage = () => {
                                 <p className="text-[11px] font-mono uppercase tracking-wider text-zinc-500">Portal access</p>
                                 <h2 className="text-lg font-medium text-white mt-1">Choose a workspace</h2>
                             </div>
-                            <span className="text-[11px] text-zinc-600">Demo shortcuts</span>
+                            <span className="text-[11px] text-zinc-600">Live role access</span>
                         </div>
                         <div className="grid sm:grid-cols-3 gap-3 mb-5">
-                        {DEMOS.map((demo) => {
-                            const Icon = demo.icon;
+                        {PORTALS.map((portal) => {
+                            const Icon = portal.icon;
                             return (
                                 <button
-                                    key={demo.email}
+                                    key={portal.email}
                                     type="button"
-                                    disabled={Boolean(demoLoading)}
-                                    onClick={() => quickDemo(demo)}
+                                    disabled={Boolean(portalLoading)}
+                                    onClick={() => openPortal(portal)}
                                     className="min-h-[108px] text-left p-4 rounded-2xl border border-white/10 bg-[#0b0f14] hover:border-[#39a0ff]/60 hover:bg-[#0d151d] transition flex flex-col justify-between gap-3 disabled:opacity-50"
                                 >
                                     <span className="flex items-center justify-between"><Icon className="w-4 h-4 text-[#39a0ff]" /><ArrowUpRight className="w-3.5 h-3.5 text-zinc-600" /></span>
                                     <span className="min-w-0">
-                                        <span className="block text-xs font-semibold text-white">{demo.role}</span>
-                                        <span className="block text-[11px] text-zinc-500 mt-1 leading-snug">{demo.hint}</span>
+                                        <span className="block text-xs font-semibold text-white">{portal.role}</span>
+                                        <span className="block text-[11px] text-zinc-500 mt-1 leading-snug">{portal.hint}</span>
                                     </span>
-                                    <span className="text-[10px] font-mono text-zinc-600">{demoLoading === demo.email ? "Connecting…" : "Open portal"}</span>
+                                    <span className="text-[10px] font-mono text-zinc-600">{portalLoading === portal.email ? "Signing in…" : "Enter portal"}</span>
                                 </button>
                             );
                         })}

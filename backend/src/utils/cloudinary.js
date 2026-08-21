@@ -69,7 +69,11 @@ export const uploadAudioToCloudinary = async (buffer, mimetype = "audio/webm") =
         const stream = cloudinary.uploader.upload_stream(
             { folder: "civic_pulse_voice_complaints", resource_type: "video" },
             (error, result) => {
-                if (error) return reject(error);
+                if (error) {
+                    console.warn("[STORAGE WARNING] Audio upload failed, using Data URI fallback:", error.message);
+                    const base64 = buffer.toString("base64");
+                    return resolve(`data:${mimetype};base64,${base64}`);
+                }
                 resolve(result.secure_url);
             }
         );
