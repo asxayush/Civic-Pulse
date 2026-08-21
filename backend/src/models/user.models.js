@@ -31,6 +31,10 @@ const userSchema = new Schema (
                     return this.role === "staff"
                 }
             },
+            isVerified: {
+                type: Boolean,
+                default: false
+            },
             invalidComplaintCount: {
                 type: Number,
                 default: 0

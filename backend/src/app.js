@@ -1,29 +1,38 @@
-import express from "express"
-import cookieParser from "cookie-parser"
-import cors from "cors"
-import router from "./routes/auth.routes.js"
+import express from "express";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import authRouter from "./routes/auth.routes.js";
+import adminRouter from "./routes/admin.routes.js";
+import complaintRouter from "./routes/complaint.routes.js";
+import { errorHandler } from "./middleware/error.middleware.js";
 
-const app = express()
+const app = express();
 
-//BASIC EXPRESS SERVER SETUP
-app.use(express.json({limit : "16kb"}))// backend accepts some data
-app.use(express.urlencoded({extended: true, limit: "16kb"}))//users can save some data
+// Basic Express server setup
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(cookieParser());
 
-app.use (cookieParser())
+// CORS Configuration
+app.use(
+    cors({
+        origin: process.env.CORS_ORIGIN?.split(",") || "http://localhost:5173",
+        credentials: true,
+        methods: ["GET", "PUT", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"]
+    })
+);
 
-//CORS CONFIG
-app.use(cors({
-    origin:process.env.CORS_ORIGIN?.split(",") || "http://localhost:5173",
-    credentials: true,
-    methods: ["GET", "PUT", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-}))
+app.get("/", (req, res) => {
+    res.json({ message: "Civic Pulse API Server Running" });
+});
 
-app.get('/', (req, res) => {
-  res.send('Hello World')
-})
+// Route Mounting
+app.use("/api/auth", authRouter);
+app.use("/api/admin", adminRouter);
+app.use("/api/complaints", complaintRouter);
 
-app.use("/api/auth", router)
+// Centralized Error Handling Middleware (must be attached after routes)
+app.use(errorHandler);
 
-
-export default app
+export default app;
