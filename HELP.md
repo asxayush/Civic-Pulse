@@ -47,6 +47,17 @@ Environment Variable: FRONTEND_URL=https://<frontend-project>.vercel.app
 
 Add `GEMINI_API_KEY`, Cloudinary variables, and SMTP variables in Vercel when those features are enabled. The backend uses `api/index.js` as its Vercel function entrypoint; do not use the local `npm start` process as the Vercel deployment command.
 
+For emergency SMS notifications through Twilio, add these variables to the Render backend:
+
+```env
+TWILIO_ACCOUNT_SID=your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_FROM_NUMBER=+1234567890
+ADMIN_PHONE_NUMBER=+919876543210
+```
+
+SMS is sent only when Gemini classifies a voice complaint as an emergency with confidence above 70%. The complaint is still saved if Twilio is unavailable.
+
 ## Public voice complaints
 
 `/voice-complaint` is public and posts recordings to `/api/voice-complaints`. It requires `GEMINI_API_KEY` for transcription/classification and the existing Cloudinary variables for audio storage. Submissions are limited to 3 per IP every 10 minutes and 5 MB/60 seconds. Admins review them under the Voice complaints tab; high-confidence emergency flags are stored and emailed to admins for human action.

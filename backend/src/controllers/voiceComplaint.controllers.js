@@ -6,6 +6,7 @@ import { User } from "../models/user.models.js";
 import { uploadAudioToCloudinary } from "../utils/cloudinary.js";
 import { analyzeVoiceComplaint } from "../utils/aiService.js";
 import { sendNotificationEmail } from "../utils/mailer.js";
+import { sendEmergencySms } from "../utils/sms.js";
 
 const createVoiceComplaint = asyncHandler(async (req, res) => {
     if (!req.file) {
@@ -55,6 +56,7 @@ const createVoiceComplaint = asyncHandler(async (req, res) => {
 
     if (voiceComplaint.isEmergency && voiceComplaint.confidence > 0.7) {
         const admins = await User.find({ role: "admin", isBanned: false }).select("email");
+        const location = [block, room && `Room ${room}`].filter(Boolean).join(", ");
         await Promise.allSettled(
             admins.map((admin) =>
                 sendNotificationEmail({
@@ -65,6 +67,12 @@ const createVoiceComplaint = asyncHandler(async (req, res) => {
                 })
             )
         );
+        await sendEmergencySms({
+            summary: voiceComplaint.summary,
+            category: voiceComplaint.category,
+            location,
+            audioUrl: voiceComplaint.audioUrl
+        }).catch((error) => console.warn("[SMS] Emergency notification failed:", error.message));
     }
 
     return res.status(201).json(
