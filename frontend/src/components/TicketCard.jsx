@@ -15,6 +15,7 @@ import {
     ShieldCheck,
     BrainCircuit
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const PIPELINE = ["PENDING", "IN_PROGRESS", "RESOLVED_BY_STAFF", "VERIFIED_CLOSED"];
 
@@ -221,6 +222,24 @@ export const TicketCard = ({
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
+                    {currentRole === "staff" && !complaint.isAnonymous && complaint.filedBy?.email && (
+                        <a
+                            href={`mailto:${complaint.filedBy.email}?subject=Civic Pulse ticket ${complaint.ticketId}`}
+                            onClick={(event) => event.stopPropagation()}
+                            className="px-2.5 py-1 rounded border border-[#39a0ff]/30 text-[#8acbff] text-xs font-medium hover:bg-[#39a0ff]/10"
+                        >
+                            Contact
+                        </a>
+                    )}
+                    {(currentRole === "staff" || currentRole === "admin") && (
+                        <Link
+                            to={`/track/${complaint.ticketId}`}
+                            onClick={(event) => event.stopPropagation()}
+                            className="px-2.5 py-1 rounded border border-white/10 text-zinc-300 text-xs font-medium hover:border-white/30"
+                        >
+                            Track
+                        </Link>
+                    )}
                     {currentRole === "student" && complaint.status !== "VERIFIED_CLOSED" && (
                         <button
                             type="button"

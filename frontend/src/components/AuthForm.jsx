@@ -6,6 +6,7 @@ export const AuthForm = ({ onLoginSuccess, onError, initialMode = "login" }) => 
     const [authMode, setAuthMode] = useState(initialMode);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [adminPin, setAdminPin] = useState("");
     const [name, setName] = useState("");
     const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
     const otpRefs = [useRef(), useRef(), useRef(), useRef(), useRef(), useRef()];
@@ -128,7 +129,7 @@ export const AuthForm = ({ onLoginSuccess, onError, initialMode = "login" }) => 
         setErrorMsg("");
         setSubmitting(true);
         try {
-            const res = await authService.login(email, password);
+            const res = await authService.login(email, password, adminPin);
             setSubmitting(false);
             onLoginSuccess(res.data?.user || { name: email.split("@")[0], email, role: "student" });
         } catch (err) {
@@ -138,7 +139,7 @@ export const AuthForm = ({ onLoginSuccess, onError, initialMode = "login" }) => 
     };
 
     const inputClass =
-        "w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-black text-zinc-100 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-white/30";
+        "w-full pl-10 pr-4 py-3 rounded-xl border border-white/10 bg-black/70 text-zinc-100 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[#39a0ff]/70 focus:ring-2 focus:ring-[#39a0ff]/10 transition";
 
     return (
         <div>
@@ -218,10 +219,25 @@ export const AuthForm = ({ onLoginSuccess, onError, initialMode = "login" }) => 
                             />
                         </div>
                     </div>
+                    <div>
+                        <label className="block text-xs font-medium text-zinc-400 mb-1.5">Admin PIN <span className="text-zinc-600">(admin accounts only)</span></label>
+                        <div className="relative">
+                            <Key className="w-4 h-4 text-zinc-500 absolute left-3 top-3.5" />
+                            <input
+                                type="password"
+                                inputMode="numeric"
+                                maxLength={8}
+                                placeholder="Leave blank for student or staff"
+                                value={adminPin}
+                                onChange={(e) => setAdminPin(e.target.value.replace(/\D/g, ""))}
+                                className={inputClass}
+                            />
+                        </div>
+                    </div>
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="w-full py-2.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-zinc-200 transition disabled:opacity-50"
+                        className="w-full py-3 rounded-xl bg-white text-black text-sm font-semibold hover:bg-[#d9efff] transition disabled:opacity-50"
                     >
                         {submitting ? "Signing in…" : "Sign in"}
                     </button>

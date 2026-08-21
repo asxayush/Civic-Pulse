@@ -36,3 +36,27 @@ export const sendOTPEmail = async (email, otp) => {
     await transporter.sendMail(mailOptions);
     return true;
 };
+
+export const sendNotificationEmail = async ({ to, subject, title, message }) => {
+    if (!to) return false;
+
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+        console.log(`[LOCAL DEV MODE] Notification for ${to}: ${subject} — ${message}`);
+        return true;
+    }
+
+    const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === "true",
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    });
+
+    await transporter.sendMail({
+        from: `"Civic Pulse" <${process.env.SMTP_USER}>`,
+        to,
+        subject,
+        html: `<div style="font-family:Arial,sans-serif;color:#222"><h2>${title}</h2><p>${message}</p></div>`
+    });
+    return true;
+};

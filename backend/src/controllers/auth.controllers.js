@@ -107,7 +107,7 @@ const verifyOTP = asyncHandler(async (req, res) => {
 // ─── POST /api/auth/login ───
 const loginUser = asyncHandler(async (req, res) => {
     const email = String(req.body.email || "").toLowerCase().trim();
-    const { password } = req.body;
+    const { password, adminPin } = req.body;
 
     const existedUser = await User.findOne({ email });
     if (!existedUser) {
@@ -121,6 +121,10 @@ const loginUser = asyncHandler(async (req, res) => {
 
     if (!existedUser.isVerified) {
         throw new ApiError(403, "Please verify your email with the OTP before logging in");
+    }
+
+    if (existedUser.role === "admin" && String(adminPin || "") !== String(process.env.ADMIN_LOGIN_PIN || "1234")) {
+        throw new ApiError(401, "A valid admin PIN is required");
     }
 
     if (existedUser.isBanned) {

@@ -41,6 +41,7 @@ Backend project:
 Root Directory: backend
 Environment Variable: MONGODB_URI=<production MongoDB connection string>
 Environment Variable: JWT_SECRET=<long random secret>
+Environment Variable: ADMIN_LOGIN_PIN=1234
 Environment Variable: FRONTEND_URL=https://<frontend-project>.vercel.app
 ```
 

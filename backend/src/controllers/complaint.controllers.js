@@ -5,17 +5,17 @@ import { Complaint } from "../models/complaint.models.js";
 import { User } from "../models/user.models.js";
 import { generateTicketId } from "../utils/ticketGenerator.js";
 import { uploadToCloudinary } from "../utils/cloudinary.js";
-import { sendOTPEmail } from "../utils/mailer.js";
+import { sendOTPEmail, sendNotificationEmail } from "../utils/mailer.js";
 import { analyzeComplaintImage, compareResolutionProof } from "../utils/aiService.js";
 
 // ─── Valid state transitions (state machine) ───
 // VERIFIED_CLOSED / REOPENED from RESOLVED_BY_STAFF are student-only (OTP / reject endpoints)
 const VALID_TRANSITIONS = {
-    "PENDING":            ["IN_PROGRESS"],
-    "IN_PROGRESS":        ["RESOLVED_BY_STAFF"],
-    "RESOLVED_BY_STAFF":  [], // closed via verify-resolution or reject-resolution only
-    "REOPENED":           ["IN_PROGRESS"],
-    "VERIFIED_CLOSED":    []  // terminal state
+    "PENDING": ["IN_PROGRESS"],
+    "IN_PROGRESS": ["RESOLVED_BY_STAFF"],
+    "RESOLVED_BY_STAFF": [], // closed via verify-resolution or reject-resolution only
+    "REOPENED": ["IN_PROGRESS"],
+    "VERIFIED_CLOSED": []  // terminal state
 };
 
 /** Load image bytes from Cloudinary URL or data-URI for AI compare */
@@ -159,6 +159,21 @@ const createComplaint = asyncHandler(async (req, res) => {
         .populate("filedBy", "name email")
         .populate("assignedTo", "name email department")
         .populate("parentTicket", "ticketId title");
+
+    const recipientQuery = assignedStaff
+        ? { $or: [{ role: "admin" }, { _id: assignedStaff._id }], isBanned: false }
+        : { role: "admin", isBanned: false };
+    const recipients = await User.find(recipientQuery).select("email");
+    await Promise.allSettled(
+        recipients.map((recipient) =>
+            sendNotificationEmail({
+                to: recipient.email,
+                subject: `New Civic Pulse ticket ${ticketId}`,
+                title: "New complaint requires attention",
+                message: `${finalTitle} was filed for ${hostelBlock} and routed to ${finalCategory}. Ticket: ${ticketId}`
+            })
+        )
+    );
 
     const responseMessage = isChild
         ? `Similar issue active (${existingParent.ticketId}). Linked automatically! AI Verified: ${aiResults.aiSummary}`
