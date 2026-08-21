@@ -15,14 +15,24 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 
 // CORS Configuration - Permissive for dev environments
+const configuredOrigins = (process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 app.use(
     cors({
         origin: (origin, callback) => {
-            // Allow all localhost ports or non-browser requests
-            if (!origin || origin.includes("localhost") || origin.includes("127.0.0.1")) {
+            if (
+                !origin ||
+                configuredOrigins.length === 0 ||
+                configuredOrigins.includes(origin) ||
+                origin.includes("localhost") ||
+                origin.includes("127.0.0.1")
+            ) {
                 return callback(null, true);
             }
-            return callback(null, true);
+            return callback(new Error("Origin is not allowed by CORS"));
         },
         credentials: true,
         methods: ["GET", "PUT", "POST", "PATCH", "DELETE", "OPTIONS"],

@@ -13,7 +13,7 @@ const ConnectDB = async () => {
             console.log("[DATABASE] Successfully connected to fallback local MongoDB!");
         } catch (fallbackError) {
             console.error("[DATABASE CRITICAL] Could not connect to any MongoDB instance:", fallbackError.message);
-            process.exit(1);
+            throw fallbackError;
         }
     }
 };
