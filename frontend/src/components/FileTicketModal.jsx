@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { X, UploadCloud, Shield, MapPin, BrainCircuit, Loader2 } from "lucide-react";
 import { complaintService } from "../services/api";
 

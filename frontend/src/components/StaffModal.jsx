@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { X, UserPlus } from "lucide-react";
 
 export const StaffModal = ({ isOpen, onClose, onSubmit }) => {

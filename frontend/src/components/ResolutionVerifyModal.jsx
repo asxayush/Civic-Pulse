@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { X, ShieldCheck, Key, CheckCircle2, RotateCcw } from "lucide-react";
 import { complaintService } from "../services/api";
 

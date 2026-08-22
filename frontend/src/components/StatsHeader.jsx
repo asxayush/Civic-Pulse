@@ -1,4 +1,3 @@
-import React from "react";
 import { AlertCircle, Clock, CheckCircle2, ThumbsUp } from "lucide-react";
 
 const CLOSED_STATUSES = new Set(["VERIFIED_CLOSED", "resolved"]);

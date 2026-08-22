@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { TicketCard } from "./TicketCard";
 import { Search, PlusCircle, Sparkles } from "lucide-react";
 

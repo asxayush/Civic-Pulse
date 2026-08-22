@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Outlet, useNavigate, Link } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import { StatsHeader } from "./StatsHeader";
@@ -72,7 +72,7 @@ export const AppShell = () => {
         } finally {
             refreshInFlight.current = false;
         }
-    }, [currentUser?.role]);
+    }, [currentUser]);
 
     useEffect(() => {
         refreshData();

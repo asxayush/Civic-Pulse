@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Logo } from "./Logo";
 import { PlusCircle, LogOut, Search, Heart, Shield, Wrench, LayoutDashboard, Mic } from "lucide-react";

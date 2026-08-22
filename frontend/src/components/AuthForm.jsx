@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Lock, Mail, User, Key, RefreshCw, Sparkles } from "lucide-react";
 import { authService } from "../services/api";
 

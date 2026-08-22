@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { TicketCard } from "./TicketCard";
 import {
     ShieldAlert,
@@ -31,7 +31,6 @@ export const AdminView = ({
     const [adminSubTab, setAdminSubTab] = useState("escalated");
     const [invalidQueue, setInvalidQueue] = useState([]);
     const [loadingQueue, setLoadingQueue] = useState(false);
-    const [voiceLoading, setVoiceLoading] = useState(false);
 
     useEffect(() => {
         if (adminSubTab !== "invalid-review") return;
@@ -268,7 +267,7 @@ export const AdminView = ({
 
             {adminSubTab === "voice" && (
                 <div className="space-y-3">
-                    {voiceLoading ? <div className="p-8 text-center text-zinc-500 text-xs">Loading voice complaints…</div> : voiceComplaints.length === 0 ? (
+                    {voiceComplaints.length === 0 ? (
                         <Empty icon={ShieldCheck} title="No voice complaints" body="Public voice submissions will appear here." />
                     ) : voiceComplaints.map((item) => (
                         <article key={item._id} className={`rounded-xl border p-5 bg-zinc-950 ${item.isEmergency ? "border-rose-500/70 shadow-lg shadow-rose-950/20" : "border-white/10"}`}>

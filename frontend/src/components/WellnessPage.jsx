@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Heart, Send, Loader2, Phone, AlertTriangle, Wind } from "lucide-react";
 import { wellnessService } from "../services/api";
 

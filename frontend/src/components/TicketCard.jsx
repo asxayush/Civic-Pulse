@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
     Copy,
     Check,
@@ -53,7 +53,7 @@ export const TicketCard = ({
         REOPENED: "Reopened"
     };
 
-    const formattedDate = new Date(complaint.createdAt || complaint.filedAt || Date.now()).toLocaleDateString(
+    const formattedDate = new Date(complaint.createdAt || complaint.filedAt || 0).toLocaleDateString(
         "en-US",
         { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
     );

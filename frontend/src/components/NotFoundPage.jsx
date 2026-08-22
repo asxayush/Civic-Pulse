@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Home } from "lucide-react";
 import { Logo } from "./Logo";

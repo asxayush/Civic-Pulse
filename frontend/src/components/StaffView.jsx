@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { TicketCard } from "./TicketCard";
 import { Wrench, CheckCircle2, ShieldAlert, Upload, X } from "lucide-react";
 
