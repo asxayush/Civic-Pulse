@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Logo } from "./Logo";
-import { PlusCircle, LogOut, Search, Heart, Shield, Wrench, LayoutDashboard } from "lucide-react";
+import { PlusCircle, LogOut, Search, Heart, Shield, Wrench, LayoutDashboard, Mic } from "lucide-react";
 import { roleHome } from "./ProtectedRoute";
 
 export const Navbar = ({ onOpenFileModal, currentUser, onLogout }) => {
@@ -28,6 +28,11 @@ export const Navbar = ({ onOpenFileModal, currentUser, onLogout }) => {
                     <Link to="/track" className="text-sm text-zinc-400 hover:text-white px-3 py-1.5 inline-flex items-center gap-1.5">
                         <Search className="w-3.5 h-3.5" /> Track
                     </Link>
+                    <NavLink to="/voice-complaint" className={linkClass}>
+                        <span className="inline-flex items-center gap-1 text-rose-300">
+                            <Mic className="w-3.5 h-3.5" /> Voice emergency
+                        </span>
+                    </NavLink>
                     {role === "student" && (
                         <>
                             <NavLink to="/app" className={linkClass}>
@@ -97,6 +102,14 @@ export const Navbar = ({ onOpenFileModal, currentUser, onLogout }) => {
                                             Open admin portal
                                         </Link>
                                     )}
+                                    <Link
+                                        to="/voice-complaint"
+                                        onClick={() => setProfileOpen(false)}
+                                        className="w-full text-left px-3 py-2 text-xs font-medium text-rose-300 hover:bg-white/5 flex items-center gap-2"
+                                    >
+                                        <Mic className="w-3.5 h-3.5" />
+                                        Voice emergency complaint
+                                    </Link>
                                     <button
                                         type="button"
                                         onClick={() => {
