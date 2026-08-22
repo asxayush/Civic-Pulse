@@ -13,6 +13,17 @@ API.interceptors.request.use((config) => {
     return config;
 });
 
+API.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401 && localStorage.getItem("token")) {
+            localStorage.removeItem("token");
+            window.dispatchEvent(new Event("auth:expired"));
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const authService = {
     register: async (name, email, password) => {
         const response = await API.post("/auth/register", { name, email, password });

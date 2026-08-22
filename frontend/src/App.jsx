@@ -12,6 +12,7 @@ import { AdminView } from "./components/AdminView";
 import { WellnessPage } from "./components/WellnessPage";
 import { LegalPage } from "./components/LegalPages";
 import { VoiceComplaintPage } from "./components/VoiceComplaintPage";
+import { NotFoundPage } from "./components/NotFoundPage";
 
 function StudentRoute() {
     const ctx = useOutletContext();
@@ -129,7 +130,7 @@ export default function App() {
                     </Route>
 
                     <Route path="/dashboard" element={<RoleRedirect />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </AuthProvider>
         </BrowserRouter>

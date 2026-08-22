@@ -30,7 +30,7 @@ const PORTALS = [
         icon: UserCheck,
         hint: "File & verify tickets"
     }
-];
+].filter((portal) => portal.role === "Student" || import.meta.env.VITE_ENABLE_DEMO_LOGIN === "true");
 
 export const LoginPage = () => {
     const { loginSuccess, isAuthenticated, currentUser, loading } = useAuth();
@@ -99,7 +99,7 @@ export const LoginPage = () => {
                                 <p className="text-[11px] font-mono uppercase tracking-wider text-zinc-500">Portal access</p>
                                 <h2 className="text-lg font-medium text-white mt-1">Choose a workspace</h2>
                             </div>
-                            <span className="text-[11px] text-zinc-600">Live role access</span>
+                            <span className="text-[11px] text-zinc-600">Student walkthrough available</span>
                         </div>
                         <div className="grid sm:grid-cols-3 gap-3 mb-5">
                         {PORTALS.map((portal) => {
@@ -110,7 +110,7 @@ export const LoginPage = () => {
                                     type="button"
                                     disabled={Boolean(portalLoading)}
                                     onClick={() => openPortal(portal)}
-                                    className="min-h-[108px] text-left p-4 rounded-2xl border border-white/10 bg-[#0b0f14] hover:border-[#39a0ff]/60 hover:bg-[#0d151d] transition flex flex-col justify-between gap-3 disabled:opacity-50"
+                                    className="min-h-27 text-left p-4 rounded-2xl border border-white/10 bg-[#0b0f14] hover:border-[#39a0ff]/60 hover:bg-[#0d151d] transition flex flex-col justify-between gap-3 disabled:opacity-50"
                                 >
                                     <span className="flex items-center justify-between"><Icon className="w-4 h-4 text-[#39a0ff]" /><ArrowUpRight className="w-3.5 h-3.5 text-zinc-600" /></span>
                                     <span className="min-w-0">

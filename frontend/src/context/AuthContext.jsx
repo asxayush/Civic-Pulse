@@ -32,6 +32,15 @@ export const AuthProvider = ({ children }) => {
         refreshUser();
     }, [refreshUser]);
 
+    useEffect(() => {
+        const handleExpiredSession = () => {
+            setCurrentUser(null);
+            setLoading(false);
+        };
+        window.addEventListener("auth:expired", handleExpiredSession);
+        return () => window.removeEventListener("auth:expired", handleExpiredSession);
+    }, []);
+
     const loginSuccess = (user) => {
         setCurrentUser(user);
     };
