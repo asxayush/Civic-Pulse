@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "./Logo";
 import { complaintService } from "../services/api";
 import {
@@ -22,6 +22,8 @@ const statusIndex = (status) => {
 export const TrackPage = () => {
     const { ticketId: paramId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const goBack = () => navigate(location.key === "default" ? "/" : -1);
     const [searchId, setSearchId] = useState(paramId || "");
     const [ticket, setTicket] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -76,9 +78,9 @@ export const TrackPage = () => {
                 <Link to="/">
                     <Logo className="h-8" variant="dark" showTagline={false} />
                 </Link>
-                <Link to="/" className="text-sm text-zinc-400 hover:text-white inline-flex items-center gap-1.5">
+                <button type="button" onClick={goBack} className="text-sm text-zinc-400 hover:text-white inline-flex items-center gap-1.5">
                     <ArrowLeft className="w-4 h-4" /> Home
-                </Link>
+                </button>
             </header>
 
             <main className="max-w-xl mx-auto px-4 py-12 sm:py-16">

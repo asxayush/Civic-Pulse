@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "./Logo";
 
 const pages = {
@@ -77,6 +77,9 @@ const pages = {
 
 export const LegalPage = ({ type = "privacy" }) => {
     const page = pages[type] || pages.privacy;
+    const navigate = useNavigate();
+    const location = useLocation();
+    const goBack = () => navigate(location.key === "default" ? "/" : -1);
 
     return (
         <div className="min-h-screen bg-black text-zinc-100">
@@ -84,9 +87,9 @@ export const LegalPage = ({ type = "privacy" }) => {
                 <Link to="/">
                     <Logo className="h-8" variant="dark" showTagline={false} />
                 </Link>
-                <Link to="/" className="text-sm text-zinc-400 hover:text-white">
-                    Home
-                </Link>
+                <button type="button" onClick={goBack} className="text-sm text-zinc-400 hover:text-white">
+                    Back
+                </button>
             </header>
             <main className="max-w-2xl mx-auto px-4 py-12 sm:py-16 animate-fade-up">
                 <p className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 mb-2">

@@ -38,6 +38,7 @@ export const LoginPage = () => {
     const navigate = useNavigate();
     const [toast, setToast] = useState(null);
     const [portalLoading, setPortalLoading] = useState(null);
+    const goBack = () => navigate(location.key === "default" ? "/" : -1);
 
     if (loading) {
         return (
@@ -72,9 +73,9 @@ export const LoginPage = () => {
                 <Link to="/">
                     <Logo className="h-8" variant="dark" showTagline={false} />
                 </Link>
-                <Link to="/" className="text-sm text-zinc-400 hover:text-white inline-flex items-center gap-1.5">
+                <button type="button" onClick={goBack} className="text-sm text-zinc-400 hover:text-white inline-flex items-center gap-1.5">
                     <ArrowLeft className="w-4 h-4" /> Back
-                </Link>
+                </button>
             </header>
 
             <main className="flex-1 flex items-center justify-center px-4 py-10 sm:px-8 lg:py-16">

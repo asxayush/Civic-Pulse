@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Loader2, Mic, Radio, ShieldAlert, Square } from "lucide-react";
 import { voiceComplaintService } from "../services/api";
 import { Logo } from "./Logo";
 
 export const VoiceComplaintPage = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const goBack = () => navigate(location.key === "default" ? "/" : -1);
     const [block, setBlock] = useState("");
     const [room, setRoom] = useState("");
     const [recording, setRecording] = useState(false);
@@ -100,7 +103,7 @@ export const VoiceComplaintPage = () => {
         <div className="min-h-screen bg-[#05070a] text-zinc-100 flex flex-col">
             <header className="h-16 border-b border-white/10 px-4 sm:px-8 flex items-center justify-between">
                 <Link to="/"><Logo className="h-8" variant="dark" showTagline={false} /></Link>
-                <Link to="/" className="text-sm text-zinc-400 hover:text-white inline-flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Back</Link>
+                <button type="button" onClick={goBack} className="text-sm text-zinc-400 hover:text-white inline-flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> Back</button>
             </header>
             <main className="flex-1 flex items-center justify-center px-4 py-10 sm:px-8">
                 <div className="w-full max-w-2xl">
